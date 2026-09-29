@@ -334,7 +334,7 @@ Las respuestas exitosas siguen una estructura simple:
 }
 ```
 
-Las respuestas de error, en esta versión base, todavía se manejan de forma simple desde las rutas:
+Las respuestas de error se manejan con `try/catch` dentro de cada método del Controller, devolviendo el status code correspondiente (400 para errores de validación/negocio, 404 cuando un recurso no existe):
 
 ```json
 {
@@ -345,32 +345,65 @@ Las respuestas de error, en esta versión base, todavía se manejan de forma sim
 
 Más adelante, el proyecto será refactorizado para incorporar una capa centralizada de manejo de errores.
 
+## Instalación y ejecución
+
+1. Clonar el repositorio y entrar a la carpeta del proyecto.
+2. Instalar dependencias:
+
+npm install
+
+3. Crear un archivo `.env` en la raíz a partir de `.env.example`, completando:
+
+PORT=8080
+MONGODB_URI=<tu-connection-string-de-mongodb-atlas>
+NODE_ENV=development
+
+4. Levantar el servidor en modo desarrollo:
+
+npm run dev
+
+5. La API queda disponible en `http://localhost:8080`.
+
+## Arquitectura por capas
+
+El proyecto sigue el patrón **Controller → Service → Repository**:
+
+- **Controller**: recibe la request y la respuesta HTTP (`req`/`res`), valida el formato básico de los datos, delega en el Service correspondiente y devuelve el status code adecuado. No conoce Mongoose.
+- **Service**: contiene la lógica de negocio. Por ejemplo, en Orders valida que el `customer` y el `store` existan antes de crear el pedido, y calcula el `total` sumando `price * quantity` de cada ítem. No conoce Express ni `req`/`res`.
+- **Repository**: es la única capa que importa los modelos de Mongoose. Expone operaciones de acceso a datos (`find`, `create`, `findByIdAndUpdate`, etc.) sin lógica de negocio.
+
+Esta separación permite testear la lógica de negocio sin depender de HTTP ni de la base de datos real, y aísla el impacto de un eventual cambio de base de datos u ORM a una sola capa.
+
 ## Estado actual del proyecto
 
-Esta versión base de ShipNow funciona, pero todavía no representa una API completamente profesional.
+La API fue refactorizada de una estructura monolítica (toda la lógica en las rutas) a una arquitectura de 3 capas.
 
 Actualmente el proyecto tiene:
 
-```txt
 app.js
 server.js
 models
-routes
-config/db.js
-```
-
-Todavía no incorpora:
-
-```txt
 controllers
 services
 repositories
+routes
+config/db.js
+config/env.config.js
+constants/index.js
+
+
+La configuración de entorno (`PORT`, `MONGODB_URI`, `NODE_ENV`) se valida al arranque: si falta alguna variable crítica, la aplicación no inicia y muestra un error descriptivo. Los roles de usuario, estados y prioridad de los pedidos están centralizados como constantes inmutables (`Object.freeze`) en `constants/index.js`.
+
+Todavía no incorpora:
+
 middleware global de errores
 logger profesional
 Swagger
 tests automatizados
 Multer
 Docker
-```
+
+
+Durante el curso, la API seguirá mejorándose progresivamente.
 
 Durante el curso, la API será mejorada progresivamente para separar responsabilidades, mejorar la mantenibilidad y acercarse a una estructura más profesional.
