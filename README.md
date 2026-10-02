@@ -26,6 +26,10 @@ El flujo básico de la API es:
 
 El pedido contiene una lista de items, una dirección de entrega, un total calculado y un estado.
 
+## Nota sobre fidelidad a la consigna
+
+La consigna original del Módulo 1 menciona las entidades `Products` y `Users`. El proyecto ShipNow entregado por la cátedra no incluye una entidad `Products` en su estado base — sus entidades son `User`, `Store` y `Order`. En la primera iteración se refactorizaron `Users`, `Stores` y `Orders` siguiendo el mismo patrón de 3 capas. En esta iteración se agregó además `Products`, con relación a `Store`, para cumplir íntegramente con la consigna.
+
 ### Entidades principales
 
 ### User
@@ -321,6 +325,133 @@ Body de ejemplo:
 DELETE /api/orders/:oid
 ```
 
+## Products
+
+### Obtener productos
+
+```http
+GET /api/products
+```
+
+### Obtener producto por ID
+
+```http
+GET /api/products/:pid
+```
+
+### Crear producto
+
+```http
+POST /api/products
+```
+
+Body de ejemplo:
+
+```json
+{
+  "name": "Caja mediana",
+  "price": 1500,
+  "stock": 10,
+  "store": "ID_DEL_COMERCIO"
+}
+```
+
+El campo `status` (`available` / `out_of_stock`) se calcula automáticamente según el `stock` — no se recibe por body.
+
+### Actualizar producto
+
+```http
+PUT /api/products/:pid
+```
+
+### Eliminar producto
+
+```http
+DELETE /api/products/:pid
+```
+
+## Mocking
+
+La API expone un conjunto de endpoints bajo `/api/mocks` para generar datos de prueba.
+
+### Generar usuarios falsos (sin guardar)
+
+```http
+GET /api/mocks/mockingusers?qty=5
+```
+
+Devuelve `qty` usuarios con rol `customer`, generados en memoria. No se guardan en la base.
+
+### Generar pedidos falsos (sin guardar)
+
+```http
+GET /api/mocks/mockingorders?qty=5
+```
+
+Devuelve `qty` pedidos simulados, con relaciones coherentes a clientes y comercios generados también en memoria (ninguno se guarda).
+
+### Generar y guardar datos reales
+
+```http
+POST /api/mocks/generateData
+```
+
+Body de ejemplo:
+
+```json
+{
+  "users": 10,
+  "stores": 5,
+  "drivers": 3,
+  "orders": 10,
+  "deliveries": 5
+}
+```
+
+Genera y guarda en MongoDB, en este orden, respetando las relaciones entre entidades:
+
+1. Usuarios con rol `customer`
+2. Usuarios con rol `store`
+3. Comercios (`Store`), usando los usuarios-tienda como `owner`
+4. Usuarios con rol `driver`
+5. Pedidos (`Order`), usando los clientes y comercios ya guardados
+6. Entregas (`Delivery`), usando los pedidos y repartidores ya guardados
+
+Respuesta esperada:
+
+```json
+{
+  "status": "success",
+  "payload": {
+    "users": 12,
+    "stores": 5,
+    "drivers": 3,
+    "orders": 10,
+    "deliveries": 5
+  }
+}
+```
+
+El campo `users` del resultado incluye tanto a los `customer` como a los `store` creados (ambos son documentos de la colección `User`).
+
+### Entidad Delivery (nueva en este módulo)
+
+Representa la asignación de un repartidor a un pedido.
+
+Campos principales:
+
+```json
+{
+  "order": "ID_DEL_PEDIDO",
+  "driver": "ID_DEL_REPARTIDOR",
+  "status": "assigned",
+  "priority": "normal",
+  "notes": "Entrega de prueba 1"
+}
+```
+
+Estados posibles: `assigned`, `in_transit`, `delivered`, `cancelled`.
+
 ---
 
 ## Formato general de respuestas
@@ -390,9 +521,13 @@ routes
 config/db.js
 config/env.config.js
 constants/index.js
+mocks
 
 
 La configuración de entorno (`PORT`, `MONGODB_URI`, `NODE_ENV`) se valida al arranque: si falta alguna variable crítica, la aplicación no inicia y muestra un error descriptivo. Los roles de usuario, estados y prioridad de los pedidos están centralizados como constantes inmutables (`Object.freeze`) en `constants/index.js`.
+La API ahora incluye generación de datos de prueba (mocking) bajo `/api/mocks`, y una nueva entidad `Delivery` que representa la asignación de un repartidor (`role: driver`) a un pedido.
+Se agregó la entidad `Products`, con relación a `Store` y cálculo automático de `status` según `stock`, cumpliendo con la consigna original del Módulo 1.
+Se eliminaron los accesos directos a `process.env` en `server.js` y `config/db.js`: toda la configuración se consume exclusivamente desde `config/env.config.js`.
 
 Todavía no incorpora:
 
