@@ -1,18 +1,17 @@
 import dns from 'dns';
-import "dotenv/config";
 import app from "./app.js";
 import connectDB from "./config/db.js";
+import { config } from "./config/env.config.js";
 
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
-const PORT = process.env.PORT || 8080;
 
 const startServer = async () => {
   try {
     await connectDB();
 
-    app.listen(PORT, () => {
-      console.log(`Servidor escuchando en el puerto ${PORT}`);
+    app.listen(config.port, () => {
+      console.log(`Servidor escuchando en el puerto ${config.port}`);
     });
   } catch (error) {
     console.error(`Error al iniciar el servidor: ${error.message}`);

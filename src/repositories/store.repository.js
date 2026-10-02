@@ -20,4 +20,8 @@ const remove = async (id) => {
     return await Store.findByIdAndDelete(id);
 };
 
-export default { getAll, create, getById, update, remove };
+const insertMany = async (data) => {
+    return await Store.insertMany(data);
+}
+
+export default { getAll, create, getById, update, remove, insertMany };

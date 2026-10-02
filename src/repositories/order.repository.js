@@ -20,4 +20,8 @@ const remove = async (id) => {
     return await Order.findByIdAndDelete(id);
 }
 
-export default { getAll, getById, create, updateStatus, remove };
+const insertMany = async (data) => {
+    return await Order.insertMany(data);
+}
+
+export default { getAll, getById, create, updateStatus, remove, insertMany };

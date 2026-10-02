@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { USER_ROLES, ORDER_STATUS, PRIORITY_LEVELS } from "../constants/index.js";
+import { USER_ROLES } from "../constants/index.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -28,7 +28,11 @@ const userSchema = new mongoose.Schema(
     documents: {
       type: Array,
       default: []
-    }
+    },
+    isAvailable: {
+    type: Boolean,
+    default: false,
+    },
   },
   {
     timestamps: true,
