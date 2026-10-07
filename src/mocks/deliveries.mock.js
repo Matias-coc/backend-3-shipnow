@@ -1,11 +1,11 @@
-import { DRIVER_STATUS, DELIVERY_PRIORITY } from '../constants/index.js';
+import { DRIVER_STATUS, PRIORITY_LEVELS } from '../constants/index.js';
 
 const generateMockDelivery = (orderId, driverId, index) => {
   return {
     order: orderId,
     driver: driverId,
     status: DRIVER_STATUS.ASSIGNED,
-    priority: DELIVERY_PRIORITY.NORMAL,
+    priority: PRIORITY_LEVELS.NORMAL,
     notes: `Entrega de prueba ${index + 1}`,
   };
 };

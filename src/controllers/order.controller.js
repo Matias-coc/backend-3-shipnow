@@ -1,57 +1,52 @@
 import orderService from '../services/order.service.js';
+import { successResponse } from '../errors/apiResponse.js';
 
-const getOrders = async (req, res) => {
+const getOrders = async (req, res, next) => {
     try {
         const orders = await orderService.getAllOrders();
-        res.status(200).json({ status: 'success', payload: orders });
+        successResponse(res, { message: 'Lista de pedidos', payload: orders });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: error.message });
+        next(error);
     }
 };
 
-const getOrder = async (req, res) => {
+const getOrder = async (req, res, next) => {
     try {
     const { oid } = req.params;
     const order = await orderService.getOrderById(oid);
-    if (!order) {
-        return res.status(404).json({ status: 'error', message: 'Order not found' });
-    }
-    res.status(200).json({ status: 'success', payload: order });
+    successResponse(res, { message: 'Pedido encontrado', payload: order });
 } catch (error) {
-    res.status(400).json({ status: 'error', message: error.message });
+    next(error);
 }
 };
 
-const createOrder = async (req, res) => {
+const createOrder = async (req, res, next) => {
     try {
         const order = await orderService.createOrder(req.body);
-        res.status(201).json({ status: 'success', payload: order });
+        successResponse(res, { statusCode: 201, message: 'Pedido creado', payload: order });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: error.message });
+        next(error);
     }
 };
 
-const updateOrderStatus = async (req, res) => {
+const updateOrderStatus = async (req, res, next) => {
     try {
         const { oid } = req.params;
         const { status } = req.body;
         const order = await orderService.updateOrderStatus(oid, status);
-        res.status(200).json({ status: 'success', payload: order });
+        successResponse(res, { message: 'Estado del pedido actualizado', payload: order });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: error.message });
+        next(error);
     }
 };
 
-const deleteOrder = async (req, res) => {
+const deleteOrder = async (req, res, next) => {
     try {
         const { oid } = req.params;
         const order = await orderService.deleteOrder(oid);
-        if (!order) {
-            return res.status(404).json({ status: 'error', message: 'Order not found' });
-        }
-        res.status(200).json({ status: 'success', message: 'Order deleted' });
+        successResponse(res, { message: 'Pedido eliminado', payload: order });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: error.message });
+        next(error);
     }
 };
 

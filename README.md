@@ -474,7 +474,84 @@ Las respuestas de error se manejan con `try/catch` dentro de cada método del Co
 }
 ```
 
-Más adelante, el proyecto será refactorizado para incorporar una capa centralizada de manejo de errores.
+## Manejo de errores
+
+La API centraliza todo el manejo de errores en una única capa, en vez de responder errores de forma aislada en cada ruta o controller.
+
+### Cómo funciona
+
+1. Los **Services** detectan los problemas de negocio (un recurso que no existe, datos inválidos, un estado no permitido) y lanzan un error con `createError(CÓDIGO)`.
+2. Los **Controllers** nunca arman la respuesta de error ellos mismos: solo hacen `next(error)`, delegando el problema.
+3. Un **middleware global** (`src/middlewares/errorHandler.js`), el último en la cadena de `app.js`, recibe cualquier error y arma la respuesta final. También traduce errores técnicos inesperados de Mongoose/MongoDB (un ID con formato inválido, una clave duplicada) a este mismo formato, en vez de exponer el error crudo.
+4. Una ruta que no existe se maneja con un middleware separado (`notFoundHandler.js`), con el mismo formato de respuesta.
+
+### Estructura de respuesta de error
+
+```json
+{
+  "status": "error",
+  "message": "Usuario no encontrado",
+  "code": "USER_NOT_FOUND"
+}
+```
+
+### Estructura de respuesta exitosa
+
+```json
+{
+  "status": "success",
+  "message": "Usuario obtenido",
+  "payload": { }
+}
+```
+
+### Códigos de error disponibles
+
+| Código | Status HTTP | Situación |
+|---|---|---|
+| `VALIDATION_ERROR` | 400 | Faltan datos obligatorios en el body |
+| `INVALID_ID_MONGOOSE` | 400 | El ID mandado no tiene formato válido de MongoDB |
+| `INVALID_ORDER_STATUS` | 400 | Se intentó setear un estado de pedido que no existe |
+| `INVALID_MOCK_AMOUNT` | 400 | La cantidad pedida en `/api/mocks` no es un número válido o es negativa |
+| `DUPLICATE_KEY_ERROR` | 409 | Ya existe un registro con ese valor único (por ejemplo, un email repetido) |
+| `USER_NOT_FOUND` / `STORE_NOT_FOUND` / `ORDER_NOT_FOUND` / `PRODUCT_NOT_FOUND` | 404 | El recurso solicitado no existe |
+| `ROUTE_NOT_FOUND` | 404 | La URL pedida no coincide con ninguna ruta de la API |
+| `INTERNAL_SERVER_ERROR` | 500 | Error inesperado no controlado |
+
+### Cómo probar el comportamiento ante casos inválidos
+
+```http
+GET /api/users/000000000000000000000000
+```
+→ 404, `USER_NOT_FOUND` (ID con formato válido pero que no existe)
+
+```http
+GET /api/users/id-invalido
+```
+→ 400, `INVALID_ID_MONGOOSE`
+
+```http
+POST /api/users
+Body: {}
+```
+→ 400, `VALIDATION_ERROR`
+
+```http
+PUT /api/orders/:oid/status
+Body: { "status": "en_camino" }
+```
+→ 400, `INVALID_ORDER_STATUS` (valor fuera del enum)
+
+```http
+GET /api/mocks/mockingusers?qty=-5
+```
+→ 400, `INVALID_MOCK_AMOUNT`
+
+```http
+POST /api/mocks/generateData
+```
+(corriéndolo dos veces seguidas, sin vaciar la colección `users`)
+→ 409, `DUPLICATE_KEY_ERROR`
 
 ## Instalación y ejecución
 
@@ -528,10 +605,10 @@ La configuración de entorno (`PORT`, `MONGODB_URI`, `NODE_ENV`) se valida al ar
 La API ahora incluye generación de datos de prueba (mocking) bajo `/api/mocks`, y una nueva entidad `Delivery` que representa la asignación de un repartidor (`role: driver`) a un pedido.
 Se agregó la entidad `Products`, con relación a `Store` y cálculo automático de `status` según `stock`, cumpliendo con la consigna original del Módulo 1.
 Se eliminaron los accesos directos a `process.env` en `server.js` y `config/db.js`: toda la configuración se consume exclusivamente desde `config/env.config.js`.
+El manejo de errores está centralizado en un middleware global (`errorHandler.js`), con un diccionario de errores de dominio (`errorDictionary.js`) y validación de entradas en el módulo de mocks.
 
 Todavía no incorpora:
 
-middleware global de errores
 logger profesional
 Swagger
 tests automatizados

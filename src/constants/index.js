@@ -21,17 +21,11 @@ export const PRIORITY_LEVELS = Object.freeze({
 });
 
 export const DRIVER_STATUS = Object.freeze({
-  ASSIGNED: 'assigned',
-  IN_TRANSIT: 'in_transit',
-  DELIVERED: 'delivered',
-  CANCELLED: 'cancelled'
+  ASSIGNED: ORDER_STATUS.ASSIGNED,
+  IN_TRANSIT: ORDER_STATUS.IN_TRANSIT,
+  DELIVERED: ORDER_STATUS.DELIVERED,
+  CANCELLED: ORDER_STATUS.CANCELLED,
 });
-
-  export const DELIVERY_PRIORITY = Object.freeze({
-    LOW: 'low',
-    NORMAL: 'normal',
-    HIGH: 'high'
-  });
 
   export const PRODUCT_STATUS = Object.freeze({
   AVAILABLE: 'available',

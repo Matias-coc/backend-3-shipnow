@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { DRIVER_STATUS, DELIVERY_PRIORITY } from "../constants/index.js";
+import { DRIVER_STATUS, PRIORITY_LEVELS } from "../constants/index.js";
 
 const deliverySchema = new mongoose.Schema(
   {
@@ -20,8 +20,8 @@ const deliverySchema = new mongoose.Schema(
     },
     priority: {
       type: String,
-      enum: Object.values(DELIVERY_PRIORITY),
-      default: DELIVERY_PRIORITY.NORMAL,
+      enum: Object.values(PRIORITY_LEVELS),
+      default: PRIORITY_LEVELS.NORMAL,
     },
     notes: {
       type: String,

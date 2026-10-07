@@ -1,59 +1,51 @@
 import productService from "../services/product.service.js";
+import { successResponse } from "../errors/apiResponse.js";
 
-const getProducts = async (req, res) => {
+const getProducts = async (req, res, next) => {
   try {
     const products = await productService.getAllProducts();
-    res.status(200).json({ status: "success", payload: products });
+    successResponse(res, { message: "Lista de productos", payload: products });
   } catch (error) {
-    res.status(400).json({ status: "error", message: error.message });
+    next(error);
   }
 };
 
-const getProduct = async (req, res) => {
+const getProduct = async (req, res, next) => {
   try {
     const { pid } = req.params;
     const product = await productService.getProductById(pid);
-    if (!product) {
-      return res.status(404).json({ status: "error", message: "Product not found" });
-    }
-    res.status(200).json({ status: "success", payload: product });
+    successResponse(res, { message: "Producto encontrado", payload: product });
   } catch (error) {
-    res.status(400).json({ status: "error", message: error.message });
+    next(error);
   }
 };
 
-const createProduct = async (req, res) => {
+const createProduct = async (req, res, next) => {
   try {
     const product = await productService.createProduct(req.body);
-    res.status(201).json({ status: "success", payload: product });
+    successResponse(res, { statusCode: 201, message: "Producto creado", payload: product });
   } catch (error) {
-    res.status(400).json({ status: "error", message: error.message });
+    next(error);
   }
 };
 
-const updateProduct = async (req, res) => {
+const updateProduct = async (req, res, next) => {
   try {
     const { pid } = req.params;
     const product = await productService.updateProduct(pid, req.body);
-    if (!product) {
-      return res.status(404).json({ status: "error", message: "Product not found" });
-    }
-    res.status(200).json({ status: "success", payload: product });
+    successResponse(res, { message: "Producto actualizado", payload: product });
   } catch (error) {
-    res.status(400).json({ status: "error", message: error.message });
+    next(error);
   }
 };
 
-const deleteProduct = async (req, res) => {
+const deleteProduct = async (req, res, next) => {
   try {
     const { pid } = req.params;
     const product = await productService.deleteProduct(pid);
-    if (!product) {
-      return res.status(404).json({ status: "error", message: "Product not found" });
-    }
-    res.status(200).json({ status: "success", message: "Product deleted" });
+    successResponse(res, { message: "Producto eliminado", payload: product });
   } catch (error) {
-    res.status(400).json({ status: "error", message: error.message });
+    next(error);
   }
 };
 

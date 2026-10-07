@@ -1,61 +1,52 @@
 import storeService from '../services/store.service.js';
+import { successResponse } from '../errors/apiResponse.js';
 
-const getStores = async (req, res) => {
+const getStores = async (req, res, next) => {
     try {
     const stores = await storeService.getAllStores();
-    res.status(200).json({ status: 'success', payload: stores });
+    successResponse(res, { message: 'Lista de tiendas', payload: stores });
 } catch (error) {
-    res.status(400).json({ status: 'error', message: error.message });
+    next(error);
 }
 };
 
-const getStore = async (req, res) => {
+const getStore = async (req, res, next) => {
     try {
         const { sid } = req.params;
         const store = await storeService.getStoreById(sid);
-        if (!store) {
-            return res.status(404).json({ status: 'error', message: 'Store not found' });
-        }
-        res.status(200).json({ status: 'success', payload: store });
+        successResponse(res, { message: 'Tienda encontrada', payload: store });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: error.message });
+        next(error);
     }
     
 };
 
-const createStore = async (req, res) => {
+const createStore = async (req, res, next) => {
     try {
         const store = await storeService.createStore(req.body);
-        res.status(201).json({ status: 'success', payload: store });
+        successResponse(res, { statusCode: 201, message: 'Tienda creada', payload: store });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: error.message });
+        next(error);
     }
 };
 
-const updateStore = async (req, res) => {
+const updateStore = async (req, res, next) => {
     try {
         const { sid } = req.params;
         const store = await storeService.updateStore(sid, req.body);
-        if (!store) {
-            return res.status(404).json({ status: 'error', message: 'Store not found' });
-        }
-        res.status(200).json({ status: 'success', payload: store });
+        successResponse(res, { message: 'Tienda actualizada', payload: store });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: error.message });
+        next(error);
     }
 };
 
-const deleteStore = async (req, res) => {
+const deleteStore = async (req, res, next) => {
     try { 
         const { sid } = req.params;
         const store = await storeService.deleteStore(sid);
-
-    if (!store) {
-        return res.status(404).json({ status: 'error', message: 'Store not found' });
-    }
-    res.status(200).json({ status: 'success', payload: store });
+        successResponse(res, { message: 'Tienda eliminada', payload: store });
 } catch (error) {
-    res.status(400).json({ status: 'error', message: error.message });
+    next(error);
 }}
 
 export default { getStores, getStore, createStore, updateStore, deleteStore };

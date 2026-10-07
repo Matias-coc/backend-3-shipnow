@@ -1,59 +1,51 @@
 import userService from '../services/user.service.js';
+import { successResponse } from '../errors/apiResponse.js';
 
-const getUsers = async (req, res) => {
+const getUsers = async (req, res, next) => {
     try {
         const users = await userService.getAllUsers();
-        res.status(200).json({ status: 'success', payload: users });
+        successResponse(res, { message: 'Lista de usuarios', payload: users });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: error.message });
+        next(error);
     }
 };
 
-const getUser = async (req, res) => {
+const getUser = async (req, res, next) => {
     try {
         const { uid } = req.params;
         const user = await userService.getUserById(uid);
-        if (!user) {
-            return res.status(404).json({ status: 'error', message: 'User not found' });
-        }
-        res.status(200).json({ status: 'success', payload: user });
+        successResponse(res, { message: 'Usuario encontrado', payload: user });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: error.message });
+        next(error);
     }
 };
 
-const createUser = async (req, res) => {
+const createUser = async (req, res, next) => {
     try {
         const user = await userService.createUser(req.body);
-        res.status(201).json({ status: 'success', payload: user });
+        successResponse(res, { message: 'Usuario creado', payload: user });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: error.message });
+        next(error);
     }
 };
 
-const updateUser = async (req, res) => {
+const updateUser = async (req, res, next) => {
     try {
         const { uid } = req.params;
         const user = await userService.updateUser(uid, req.body);
-        if (!user) {
-            return res.status(404).json({ status: 'error', message: 'User not found' });
-        }
-        res.status(200).json({ status: 'success', payload: user });
+        successResponse(res, { message: 'Usuario actualizado', payload: user });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: error.message });
+        next(error);
     }
 };
 
-const deleteUser = async (req, res) => {
+const deleteUser = async (req, res, next) => {
     try {
         const { uid } = req.params;
         const user = await userService.deleteUser(uid);
-        if (!user) {
-            return res.status(404).json({ status: 'error', message: 'User not found' });
-        }
-        res.status(200).json({ status: 'success', payload: user });
+        successResponse(res, { message: 'Usuario eliminado', payload: user });
     } catch (error) {
-        res.status(400).json({ status: 'error', message: error.message });
+        next(error);
     }
 };
 
