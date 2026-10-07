@@ -23,7 +23,7 @@ const getUser = async (req, res, next) => {
 const createUser = async (req, res, next) => {
     try {
         const user = await userService.createUser(req.body);
-        successResponse(res, { message: 'Usuario creado', payload: user });
+        successResponse(res, { statusCode: 201, message: 'Usuario creado', payload: user });
     } catch (error) {
         next(error);
     }

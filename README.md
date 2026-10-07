@@ -454,26 +454,6 @@ Estados posibles: `assigned`, `in_transit`, `delivered`, `cancelled`.
 
 ---
 
-## Formato general de respuestas
-
-Las respuestas exitosas siguen una estructura simple:
-
-```json
-{
-  "status": "success",
-  "payload": {}
-}
-```
-
-Las respuestas de error se manejan con `try/catch` dentro de cada método del Controller, devolviendo el status code correspondiente (400 para errores de validación/negocio, 404 cuando un recurso no existe):
-
-```json
-{
-  "status": "error",
-  "message": "Usuario no encontrado"
-}
-```
-
 ## Manejo de errores
 
 La API centraliza todo el manejo de errores en una única capa, en vez de responder errores de forma aislada en cada ruta o controller.
