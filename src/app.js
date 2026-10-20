@@ -7,11 +7,14 @@ import productsRouter from "./routes/product.router.js";
 import mocksRouter from "./routes/mocks.router.js";
 import { notFoundHandler } from "./middlewares/notFoundHandler.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import { requestLogger } from "./middlewares/requestLogger.js";
+import loggerRouter from "./routes/logger.router.js";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(requestLogger);
 
 app.get("/", (req, res) => {
   res.json({
@@ -32,7 +35,7 @@ app.use("/api/stores", storesRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/products", productsRouter);
 app.use("/api/mocks", mocksRouter);
-
+app.use("/loggerTest", loggerRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

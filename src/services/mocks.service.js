@@ -8,6 +8,7 @@ import orderRepository from '../repositories/order.repository.js';
 import deliveryRepository from '../repositories/delivery.repository.js';
 import { createError } from '../errors/apiResponse.js';
 import { ERROR_CODES } from '../errors/errorDictionary.js';
+import logger from '../config/logger.js';
 
 const parseQuantity = (qty, fallback) => {
   if (qty === undefined) return fallback;
@@ -45,6 +46,8 @@ const generateData = async ({ users, stores, drivers, orders, deliveries }) => {
     const driversQty = parseQuantity(drivers, 3);
     const ordersQty = parseQuantity(orders, 10);
     const deliveriesQty = parseQuantity(deliveries, 5);
+
+    logger.debug('Cantidades solicitadas para generateData:', { usersQty, storesQty, driversQty, ordersQty, deliveriesQty });
 
     const result = { users: 0, stores: 0, drivers: 0, orders: 0, deliveries: 0 };
 
@@ -90,6 +93,7 @@ const generateData = async ({ users, stores, drivers, orders, deliveries }) => {
         result.deliveries = createdDeliveries.length;
     }
 
+    logger.info('Datos de prueba generados y guardados', result);
     return result;
 };
 

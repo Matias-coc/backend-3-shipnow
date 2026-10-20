@@ -395,6 +395,7 @@ Devuelve `qty` pedidos simulados, con relaciones coherentes a clientes y comerci
 ```http
 POST /api/mocks/generateData
 ```
+Los emails generados incluyen una marca única por corrida, por lo que este endpoint puede ejecutarse varias veces sin chocar con datos anteriores.
 
 Body de ejemplo:
 
@@ -533,6 +534,55 @@ POST /api/mocks/generateData
 (corriéndolo dos veces seguidas, sin vaciar la colección `users`)
 → 409, `DUPLICATE_KEY_ERROR`
 
+## Logging y monitoreo
+
+El proyecto usa **Winston** como logger centralizado (`src/config/logger.js`) y **winston-daily-rotate-file** para guardar errores en archivos con rotación diaria. Cualquier módulo puede usarlo con `import logger from '../config/logger.js'`, sin repetir configuración.
+
+### Niveles de log
+
+| Nivel | Valor | Cuándo se usa |
+|---|---|---|
+| `fatal` | 0 | La aplicación no puede arrancar o seguir (por ejemplo, falla la conexión inicial a MongoDB) |
+| `error` | 1 | Errores inesperados del servidor |
+| `warning` | 2 | Errores esperados o de negocio (recurso inexistente, datos inválidos, cantidad inválida en mocks, ruta inexistente) |
+| `info` | 3 | Eventos normales: servidor iniciado, MongoDB conectado, pedido creado, datos de prueba generados |
+| `http` | 4 | Cada petición que recibe la API |
+| `debug` | 5 | Detalle técnico útil solo en desarrollo |
+
+En Winston, un número menor significa mayor gravedad, y el nivel configurado actúa como umbral: se muestra ese nivel y todos los más graves.
+
+### Comportamiento según el entorno
+
+El nivel se decide con `NODE_ENV` (validado en `config/env.config.js`):
+
+- **development**: se muestran los seis niveles, incluido `debug` y `http`.
+- **production**: se muestra desde `info` hacia arriba (`info`, `warning`, `error`, `fatal`).
+
+### Dónde se guardan los logs
+
+Los errores importantes (`error` y `fatal`) se guardan en `logs/errors-YYYY-MM-DD.log`: un archivo por día, conservando los últimos 14 días. La carpeta `logs/` también contiene un archivo de control de la rotación generado por la librería. Todo `logs/` y los archivos `*.log` están en el `.gitignore`, por lo que no se suben al repositorio.
+
+### Cómo probar el logger
+
+```http
+GET /loggerTest
+```
+
+Genera un mensaje por cada nivel. Para validarlo:
+
+1. En la consola deben aparecer los seis niveles (en `production`, solo desde `info`).
+2. En `logs/errors-<fecha>.log` deben quedar únicamente las líneas `ERROR` y `FATAL`.
+
+Para probar el modo producción: `NODE_ENV=production npm start`.
+
+### Eventos registrados
+
+- Servidor iniciado y conexión a MongoDB (`info`); fallo de arranque (`fatal`)
+- Cada petición HTTP (`http`)
+- Errores esperados de negocio, ruta inexistente y cantidad inválida en mocks (`warning`, vía el middleware de errores)
+- Errores inesperados, con stack trace (`error`)
+- Generación de datos de prueba y creación de pedidos (`info`)
+
 ## Instalación y ejecución
 
 1. Clonar el repositorio y entrar a la carpeta del proyecto.
@@ -586,10 +636,10 @@ La API ahora incluye generación de datos de prueba (mocking) bajo `/api/mocks`,
 Se agregó la entidad `Products`, con relación a `Store` y cálculo automático de `status` según `stock`, cumpliendo con la consigna original del Módulo 1.
 Se eliminaron los accesos directos a `process.env` en `server.js` y `config/db.js`: toda la configuración se consume exclusivamente desde `config/env.config.js`.
 El manejo de errores está centralizado en un middleware global (`errorHandler.js`), con un diccionario de errores de dominio (`errorDictionary.js`) y validación de entradas en el módulo de mocks.
+Se incorporó logging centralizado con Winston (niveles, archivos con rotación, endpoint /loggerTest).
 
 Todavía no incorpora:
 
-logger profesional
 Swagger
 tests automatizados
 Multer

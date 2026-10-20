@@ -2,11 +2,13 @@ import mongoose from 'mongoose';
 import { USER_ROLES } from '../constants/index.js';
 
 const generateMockUser = (index, role = USER_ROLES.CUSTOMER) => {
+  const runId = Date.now().toString(36);
+  
   return {
     _id: new mongoose.Types.ObjectId(),
     firstName: `User ${index + 1}`,
     lastName: `Last Name ${index + 1}`,
-    email: `${role}${index + 1}@example.com`,
+    email: `${role}${index + 1}-${runId}@example.com`,
     password: 'coder123',
     role,
   };

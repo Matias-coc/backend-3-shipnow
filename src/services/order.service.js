@@ -4,6 +4,7 @@ import storeRepository from '../repositories/store.repository.js';
 import { createError } from '../errors/apiResponse.js';
 import { ERROR_CODES } from '../errors/errorDictionary.js';
 import { ORDER_STATUS } from '../constants/index.js'
+import logger from '../config/logger.js';
 
 const getAllOrders = async () => {
     return await orderRepository.getAll();
@@ -39,7 +40,11 @@ const createOrder = async (data) => {
 
     const total = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
-    return await orderRepository.create({ customer, store, items, deliveryAddress, priority, total });
+    const order = await orderRepository.create({ customer, store, items, deliveryAddress, total, priority });
+
+    logger.info(`Orden creada con ID`, { orderId: order._id, total });
+
+    return order;
 };
 
 const updateOrderStatus = async (id, status) => {
