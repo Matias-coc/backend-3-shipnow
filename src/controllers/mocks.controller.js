@@ -21,15 +21,12 @@ const getMockOrders = async (req, res,next) => {
     }
 };
 
-
-const generateData = async (req, res,next) => {
+const generateData = async (req, res, next) => {
     try {
-        const { users, stores, drivers, orders, deliveries } = req.body;
-        const result = await mocksService.generateData({ users, stores, drivers, orders, deliveries });
+        const result = await mocksService.generateData(req.body);
         successResponse(res, { message: 'Datos de prueba generados y guardados', payload: result });
     } catch (error) {
         next(error);
     }
 };
-
 export default { getMockUsers, getMockOrders, generateData };

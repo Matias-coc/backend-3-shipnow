@@ -13,6 +13,10 @@ export function errorHandler(error, req, res, next) {
     handledError = createError(ERROR_CODES.DUPLICATE_KEY_ERROR);
   }
 
+  if (error.type === 'entity.parse.failed') {
+  handledError = createError(ERROR_CODES.INVALID_JSON_BODY);
+}
+
   const context = { method: req.method, path: req.originalUrl };
 
   if (!handledError.statusCode) {

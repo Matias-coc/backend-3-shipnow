@@ -139,7 +139,7 @@ Respuesta esperada:
 ```json
 {
   "status": "success",
-  "message": "API funcionando correctamente"
+  "message": "API funcionando"
 }
 ```
 
@@ -277,11 +277,12 @@ Body de ejemplo:
 }
 ```
 
-Respuesta esperada:
+Respuesta esperada (status 201):
 
 ```json
 {
   "status": "success",
+  "message": "Pedido creado",
   "payload": {
     "_id": "ID_DEL_PEDIDO",
     "customer": "ID_DEL_USUARIO",
@@ -380,7 +381,7 @@ La API expone un conjunto de endpoints bajo `/api/mocks` para generar datos de p
 GET /api/mocks/mockingusers?qty=5
 ```
 
-Devuelve `qty` usuarios con rol `customer`, generados en memoria. No se guardan en la base.
+Devuelve `qty` usuarios con rol `customer`, generados en memoria. No se guardan en la base. `qty` es opcional (por defecto 10) y debe ser un entero positivo.
 
 ### Generar pedidos falsos (sin guardar)
 
@@ -395,8 +396,6 @@ Devuelve `qty` pedidos simulados, con relaciones coherentes a clientes y comerci
 ```http
 POST /api/mocks/generateData
 ```
-Los emails generados incluyen una marca única por corrida, por lo que este endpoint puede ejecutarse varias veces sin chocar con datos anteriores.
-
 Body de ejemplo:
 
 ```json
@@ -408,6 +407,10 @@ Body de ejemplo:
   "deliveries": 5
 }
 ```
+
+Cada cantidad es opcional: si no se envía, se usa un valor por defecto (`users` 10, `stores` 5, `drivers` 3, `orders` 10 y `deliveries` 5). Si se envía, debe ser un entero positivo. Un body vacío usa todos los valores por defecto; un body que no sea un objeto (por ejemplo, un array) responde `VALIDATION_ERROR`.
+
+Los emails generados incluyen una marca única por corrida, por lo que este endpoint puede ejecutarse varias veces sin chocar con datos anteriores.
 
 Genera y guarda en MongoDB, en este orden, respetando las relaciones entre entidades:
 
@@ -423,6 +426,7 @@ Respuesta esperada:
 ```json
 {
   "status": "success",
+  "message": "Datos de prueba generados y guardados",
   "payload": {
     "users": 12,
     "stores": 5,
@@ -435,7 +439,7 @@ Respuesta esperada:
 
 El campo `users` del resultado incluye tanto a los `customer` como a los `store` creados (ambos son documentos de la colección `User`).
 
-### Entidad Delivery (nueva en este módulo)
+### Entidad Delivery
 
 Representa la asignación de un repartidor a un pedido.
 
@@ -457,7 +461,7 @@ Estados posibles: `assigned`, `in_transit`, `delivered`, `cancelled`.
 
 ## Manejo de errores
 
-La API centraliza todo el manejo de errores en una única capa, en vez de responder errores de forma aislada en cada ruta o controller.
+La API centraliza todo el manejo de errores en una única capa, en vez de responder errores de forma aislada en cada ruta o controller. Los errores inesperados se registran con su stack trace en el log, y al cliente le llega un mensaje genérico (INTERNAL_SERVER_ERROR), sin detalles técnicos.
 
 ### Cómo funciona
 
@@ -493,7 +497,8 @@ La API centraliza todo el manejo de errores en una única capa, en vez de respon
 | `VALIDATION_ERROR` | 400 | Faltan datos obligatorios en el body |
 | `INVALID_ID_MONGOOSE` | 400 | El ID mandado no tiene formato válido de MongoDB |
 | `INVALID_ORDER_STATUS` | 400 | Se intentó setear un estado de pedido que no existe |
-| `INVALID_MOCK_AMOUNT` | 400 | La cantidad pedida en `/api/mocks` no es un número válido o es negativa |
+| `INVALID_MOCK_AMOUNT` | 400 | La cantidad pedida en `/api/mocks` no es un entero positivo (rechaza decimales, cero, negativos y texto) |
+| `INVALID_JSON_BODY` | 400 | El cuerpo de la petición no es un JSON válido |
 | `DUPLICATE_KEY_ERROR` | 409 | Ya existe un registro con ese valor único (por ejemplo, un email repetido) |
 | `USER_NOT_FOUND` / `STORE_NOT_FOUND` / `ORDER_NOT_FOUND` / `PRODUCT_NOT_FOUND` | 404 | El recurso solicitado no existe |
 | `ROUTE_NOT_FOUND` | 404 | La URL pedida no coincide con ninguna ruta de la API |
@@ -529,10 +534,21 @@ GET /api/mocks/mockingusers?qty=-5
 → 400, `INVALID_MOCK_AMOUNT`
 
 ```http
-POST /api/mocks/generateData
+POST /api/users
 ```
-(corriéndolo dos veces seguidas, sin vaciar la colección `users`)
-→ 409, `DUPLICATE_KEY_ERROR`
+(enviando dos veces seguidas el mismo body, con el mismo `email`)
+→ la segunda vez responde 409, `DUPLICATE_KEY_ERROR`
+
+```http
+GET /api/mocks/mockingusers?qty=2.5
+```
+→ 400, `INVALID_MOCK_AMOUNT`
+
+```http
+POST /api/users
+```
+(enviando un body con JSON mal formado, por ejemplo con una llave sin cerrar)
+→ 400, `INVALID_JSON_BODY`
 
 ## Logging y monitoreo
 
@@ -588,17 +604,23 @@ Para probar el modo producción: `NODE_ENV=production npm start`.
 1. Clonar el repositorio y entrar a la carpeta del proyecto.
 2. Instalar dependencias:
 
+```bash
 npm install
+```
 
 3. Crear un archivo `.env` en la raíz a partir de `.env.example`, completando:
 
+```env
 PORT=8080
 MONGODB_URI=<tu-connection-string-de-mongodb-atlas>
 NODE_ENV=development
+```
 
 4. Levantar el servidor en modo desarrollo:
 
+```bash
 npm run dev
+```
 
 5. La API queda disponible en `http://localhost:8080`.
 
@@ -618,18 +640,22 @@ La API fue refactorizada de una estructura monolítica (toda la lógica en las r
 
 Actualmente el proyecto tiene:
 
+```txt
 app.js
 server.js
 models
 controllers
+errors
+middlewares
 services
 repositories
 routes
 config/db.js
 config/env.config.js
+config/logger.js
 constants/index.js
 mocks
-
+```
 
 La configuración de entorno (`PORT`, `MONGODB_URI`, `NODE_ENV`) se valida al arranque: si falta alguna variable crítica, la aplicación no inicia y muestra un error descriptivo. Los roles de usuario, estados y prioridad de los pedidos están centralizados como constantes inmutables (`Object.freeze`) en `constants/index.js`.
 La API ahora incluye generación de datos de prueba (mocking) bajo `/api/mocks`, y una nueva entidad `Delivery` que representa la asignación de un repartidor (`role: driver`) a un pedido.
@@ -640,10 +666,11 @@ Se incorporó logging centralizado con Winston (niveles, archivos con rotación,
 
 Todavía no incorpora:
 
+```txt
 Swagger
 tests automatizados
 Multer
 Docker
-
+```
 
 Durante el curso, la API será mejorada progresivamente para separar responsabilidades, mejorar la mantenibilidad y acercarse a una estructura más profesional.

@@ -10,6 +10,7 @@ export const ERROR_CODES = {
   PRODUCT_NOT_FOUND: "PRODUCT_NOT_FOUND",
   INVALID_MOCK_AMOUNT: "INVALID_MOCK_AMOUNT",
   DUPLICATE_KEY_ERROR: "DUPLICATE_KEY_ERROR",
+  INVALID_JSON_BODY: "INVALID_JSON_BODY",
 };
 
 export const ERROR_DICTIONARY = {
@@ -23,5 +24,6 @@ export const ERROR_DICTIONARY = {
   INVALID_ORDER_STATUS: { statusCode: 400, message: "Estado de pedido inválido" },
   PRODUCT_NOT_FOUND: { statusCode: 404, message: "Producto no encontrado" },
   INVALID_MOCK_AMOUNT: { statusCode: 400, message: "La cantidad solicitada no es válida" },
+  INVALID_JSON_BODY: { statusCode: 400, message: "El cuerpo de la petición JSON no es válido" },
   DUPLICATE_KEY_ERROR: { statusCode: 409, message: "Ya existe un registro con ese valor único (por ejemplo, el email)" },
 };
