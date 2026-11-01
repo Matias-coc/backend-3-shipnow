@@ -1,0 +1,222 @@
+paths:
+  /api/users:
+    get:
+      summary: Listar usuarios
+      description: Devuelve todos los usuarios registrados.
+      tags:
+        - Users
+      responses:
+        "200":
+          description: Lista de usuarios
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/User"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Crear usuario
+      description: Crea un usuario nuevo. El email debe ser único.
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreate"
+      responses:
+        "201":
+          description: Usuario creado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/User"
+        "400":
+          description: Datos faltantes o inválidos, o JSON mal formado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                faltanDatos:
+                  $ref: "#/components/examples/ValidationError"
+                datosInvalidos:
+                  $ref: "#/components/examples/InvalidData"
+                jsonInvalido:
+                  $ref: "#/components/examples/InvalidJsonBody"
+        "409":
+          description: Ya existe un usuario con el mismo email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                emailDuplicado:
+                  $ref: "#/components/examples/DuplicateKeyError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /api/users/{uid}:
+    get:
+      summary: Obtener usuario por ID
+      description: Devuelve un usuario según su ID.
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: uid
+          required: true
+          description: ID del usuario
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+      responses:
+        "200":
+          description: Usuario encontrado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/User"
+        "400":
+          description: El ID no tiene un formato válido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+        "404":
+          description: No existe un usuario con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                noEncontrado:
+                  $ref: "#/components/examples/UserNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      summary: Actualizar usuario
+      description: Actualiza un usuario según su ID. Solo se modifican los campos que se envían.
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: uid
+          required: true
+          description: ID del usuario
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/User"
+        "400":
+          description: El ID no tiene un formato válido, o los datos enviados son inválidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+                datosInvalidos:
+                  $ref: "#/components/examples/InvalidData"
+                JSONInvalido:
+                  $ref: "#/components/examples/InvalidJsonBody"
+        "404":
+          description: No existe un usuario con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                noEncontrado:
+                  $ref: "#/components/examples/UserNotFound"
+        "409":
+          description: Ya existe un usuario con el mismo email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                emailDuplicado:
+                  $ref: "#/components/examples/DuplicateKeyError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Eliminar usuario por ID
+      description: Elimina un usuario según su ID.
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: uid
+          required: true
+          description: ID del usuario
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+      responses:
+        "200":
+          description: Usuario eliminado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/User"
+        "400":
+          description: El ID no tiene un formato válido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+        "404":
+          description: No existe un usuario con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                noEncontrado:
+                  $ref: "#/components/examples/UserNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"

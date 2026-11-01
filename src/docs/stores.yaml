@@ -1,0 +1,204 @@
+paths:
+  /api/stores:
+    get:
+      summary: Listar comercios
+      description: Devuelve todos los comercios registrados.
+      tags:
+        - Stores
+      responses:
+        "200":
+          description: Lista de comercios
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Store"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Crear comercio
+      description: Crea un comercio nuevo. El campo owner es el ID del usuario dueño del comercio.
+      tags:
+        - Stores
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreCreate"
+      responses:
+        "201":
+          description: Comercio creado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/Store"
+        "400":
+          description: Datos faltantes o inválidos, o JSON mal formado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                faltanDatos:
+                  $ref: "#/components/examples/ValidationError"
+                datosInvalidos:
+                  $ref: "#/components/examples/InvalidData"
+                jsonInvalido:
+                  $ref: "#/components/examples/InvalidJsonBody"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /api/stores/{sid}:
+    get:
+      summary: Obtener comercio por ID
+      description: Devuelve un comercio según su ID.
+      tags:
+        - Stores
+      parameters:
+        - name: sid
+          in: path
+          description: ID del comercio
+          required: true
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+      responses:
+        "200":
+          description: Comercio encontrado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/Store"
+        "400":
+          description: El ID no tiene un formato válido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+        "404":
+          description: No existe un comercio con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                noEncontrado:
+                  $ref: "#/components/examples/StoreNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      summary: Actualizar comercio
+      description: Actualiza un comercio según su ID. Solo se modifican los campos que se envían.
+      tags:
+        - Stores
+      parameters:
+        - name: sid
+          in: path
+          description: ID del comercio
+          required: true
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreUpdate"
+      responses:
+        "200":
+          description: Comercio actualizado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/Store"
+        "400":
+          description: El ID no tiene un formato válido, los datos enviados son inválidos o el JSON está mal formado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+                datosInvalidos:
+                  $ref: "#/components/examples/InvalidData"
+                jsonInvalido:
+                  $ref: "#/components/examples/InvalidJsonBody"
+        "404":
+          description: No existe un comercio con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                noEncontrado:
+                  $ref: "#/components/examples/StoreNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Eliminar comercio
+      description: Elimina un comercio según su ID.
+      tags:
+        - Stores
+      parameters:
+        - name: sid
+          in: path
+          description: ID del comercio
+          required: true
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+      responses:
+        "200":
+          description: Comercio eliminado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/Store"
+        "400":
+          description: El ID no tiene un formato válido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+        "404":
+          description: No existe un comercio con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                noEncontrado:
+                  $ref: "#/components/examples/StoreNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"

@@ -24,4 +24,8 @@ const insertMany = async (data) => {
   return await Delivery.insertMany(data);
 }
 
-export default { getAll, getById, create, updateStatus, remove, insertMany };
+const getByOrder = async (orderId) => {
+  return await Delivery.findOne({ order: orderId });
+};
+
+export default { getAll, getById, create, updateStatus, remove, insertMany, getByOrder };

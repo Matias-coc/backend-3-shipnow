@@ -1,0 +1,41 @@
+paths:
+  /:
+    get:
+      summary: Información de la API
+      description: Devuelve el nombre de la API.
+      tags:
+        - Health
+      responses:
+        "200":
+          description: La API está en línea
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: ShipNow API
+  /health:
+    get:
+      summary: Verificar el estado de la API
+      description: Permite comprobar que la API está funcionando.
+      tags:
+        - Health
+      responses:
+        "200":
+          description: La API está funcionando
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: API funcionando

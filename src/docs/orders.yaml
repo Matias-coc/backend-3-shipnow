@@ -1,0 +1,218 @@
+paths:
+  /api/orders:
+    get:
+      summary: Listar pedidos
+      description: Devuelve todos los pedidos registrados.
+      tags:
+        - Orders
+      responses:
+        "200":
+          description: Lista de pedidos
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Order"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Crear pedido
+      description: Crea un pedido nuevo.
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderCreate"
+      responses:
+        "201":
+          description: Pedido creado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/Order"
+        "400":
+          description: Datos faltantes o inválidos, o JSON mal formado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                faltanDatos:
+                  $ref: "#/components/examples/ValidationError"
+                datosInvalidos:
+                  $ref: "#/components/examples/InvalidData"
+                jsonInvalido:
+                  $ref: "#/components/examples/InvalidJsonBody"
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+        "404":
+          description: No existe un comercio con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                usuarioNoEncontrado:
+                  $ref: "#/components/examples/UserNotFound"
+                tiendaNoEncontrada:
+                  $ref: "#/components/examples/StoreNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /api/orders/{oid}:
+    get:
+      summary: Obtener pedido por ID
+      description: Devuelve un pedido según su ID.
+      tags:
+        - Orders
+      parameters:
+        - name: oid
+          in: path
+          description: ID del pedido a buscar
+          required: true
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+      responses:
+        "200":
+          description: Pedido encontrado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/Order"
+        "400":
+          description: El ID no tiene un formato válido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+        "404":
+          description: No existe un pedido con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                pedidoNoEncontrado:
+                  $ref: "#/components/examples/OrderNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Eliminar pedido
+      description: Elimina un pedido según su ID.
+      tags:
+        - Orders
+      parameters:
+        - name: oid
+          in: path
+          description: ID del pedido a eliminar
+          required: true
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+      responses:
+        "200":
+          description: Pedido eliminado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/Order"
+        "400":
+          description: El ID no tiene un formato válido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+        "404":
+          description: No existe un pedido con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                NoEncontrado:
+                  $ref: "#/components/examples/OrderNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /api/orders/{oid}/status:
+    put:
+      summary: Actualizar estado del pedido
+      description: Actualiza el estado de un pedido según su ID.
+      tags:
+        - Orders
+      parameters:
+        - name: oid
+          in: path
+          description: ID del pedido
+          required: true
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderStatusUpdate"
+      responses:
+        "200":
+          description: Pedido actualizado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/Order"
+        "400":
+          description: El ID no tiene un formato válido, el estado no existe o el JSON está mal formado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+                estadoInvalido:
+                  $ref: "#/components/examples/InvalidOrderStatus"
+                jsonInvalido:
+                  $ref: "#/components/examples/InvalidJsonBody"
+        "404":
+          description: No existe un pedido con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                pedidoNoEncontrado:
+                  $ref: "#/components/examples/OrderNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"

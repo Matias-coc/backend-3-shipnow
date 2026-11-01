@@ -1,0 +1,444 @@
+components:
+  schemas:
+    # ------------------------------------------------------------------
+    # Respuestas genéricas
+    # ------------------------------------------------------------------
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Operación realizada correctamente
+        payload:
+          description: Datos devueltos por la operación. Según el endpoint puede ser un objeto, una lista o un objeto vacío.
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: Usuario no encontrado
+        code:
+          type: string
+          description: Código del diccionario de errores de la API
+          example: USER_NOT_FOUND
+
+    # ------------------------------------------------------------------
+    # Tipos reutilizables
+    # ------------------------------------------------------------------
+    ObjectId:
+      type: string
+      description: Identificador de MongoDB (24 caracteres hexadecimales)
+      pattern: "^[0-9a-fA-F]{24}$"
+      example: 6ad68c436aadf692afca80a4
+
+    # ------------------------------------------------------------------
+    # Entidades (así las devuelve la API)
+    # ------------------------------------------------------------------
+    User:
+      type: object
+      properties:
+        _id:
+          $ref: "#/components/schemas/ObjectId"
+        firstName:
+          type: string
+          example: Martina
+        lastName:
+          type: string
+          example: Gómez
+        email:
+          type: string
+          format: email
+          example: martina@test.com
+        password:
+          type: string
+          description: Contraseña. Hoy se guarda y se devuelve sin cifrar, porque el cifrado todavía no está implementado.
+          example: "123456"
+        role:
+          type: string
+          enum: [admin, customer, store, driver]
+          default: customer
+          example: customer
+        isAvailable:
+          type: boolean
+          default: false
+          description: Disponibilidad del repartidor (aplica a usuarios con role driver)
+        documents:
+          type: array
+          description: Documentos asociados al usuario
+          items:
+            type: object
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Store:
+      type: object
+      properties:
+        _id:
+          $ref: "#/components/schemas/ObjectId"
+        name:
+          type: string
+          example: Kiosco Centro
+        address:
+          type: string
+          example: Av. Siempre Viva 742
+        owner:
+          allOf:
+            - $ref: "#/components/schemas/ObjectId"
+          description: ID del usuario dueño del comercio
+        isActive:
+          type: boolean
+          default: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderItem:
+      type: object
+      required: [name, quantity, price]
+      properties:
+        name:
+          type: string
+          example: Caja mediana
+        quantity:
+          type: number
+          example: 2
+        price:
+          type: number
+          description: Precio unitario
+          example: 1500
+
+    Order:
+      type: object
+      properties:
+        _id:
+          $ref: "#/components/schemas/ObjectId"
+        customer:
+          description: ID del cliente al crear o actualizar el pedido. Al consultar pedidos (GET) se devuelve el usuario completo.
+          oneOf:
+            - $ref: "#/components/schemas/ObjectId"
+            - $ref: "#/components/schemas/User"
+        store:
+          description: ID del comercio al crear o actualizar el pedido. Al consultar pedidos (GET) se devuelve el comercio completo.
+          oneOf:
+            - $ref: "#/components/schemas/ObjectId"
+            - $ref: "#/components/schemas/Store"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        deliveryAddress:
+          type: string
+          example: Av. Siempre Viva 742
+        total:
+          type: number
+          description: Calculado automáticamente (suma de precio por cantidad de cada ítem)
+          example: 3000
+        status:
+          type: string
+          enum: [created, assigned, picked_up, in_transit, delivered, cancelled]
+          default: created
+        priority:
+          type: string
+          enum: [low, normal, high]
+          default: normal
+        proof:
+          type: object
+          nullable: true
+          description: Comprobante asociado al pedido (por ahora siempre null)
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Product:
+      type: object
+      properties:
+        _id:
+          $ref: "#/components/schemas/ObjectId"
+        name:
+          type: string
+          example: Caja mediana
+        price:
+          type: number
+          example: 1500
+        stock:
+          type: number
+          example: 10
+        status:
+          type: string
+          enum: [available, out_of_stock]
+          description: Se calcula automáticamente según el stock (out_of_stock cuando stock es 0 o menos)
+        store:
+          allOf:
+            - $ref: "#/components/schemas/ObjectId"
+          description: ID del comercio al que pertenece el producto
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Delivery:
+      type: object
+      properties:
+        _id:
+          $ref: "#/components/schemas/ObjectId"
+        order:
+          description: ID del pedido al crear o actualizar la entrega. Al consultar entregas (GET) se devuelve el pedido completo.
+          oneOf:
+            - $ref: "#/components/schemas/ObjectId"
+            - $ref: "#/components/schemas/Order"
+        driver:
+          description: ID del repartidor al crear o actualizar la entrega. Al consultar entregas (GET) se devuelve el usuario completo.
+          oneOf:
+            - $ref: "#/components/schemas/ObjectId"
+            - $ref: "#/components/schemas/User"
+        status:
+          type: string
+          enum: [assigned, in_transit, delivered, cancelled]
+          default: assigned
+        priority:
+          type: string
+          enum: [low, normal, high]
+          default: normal
+        notes:
+          type: string
+          example: Entregar en recepción
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ------------------------------------------------------------------
+    # Bodies de request
+    # ------------------------------------------------------------------
+    UserCreate:
+      type: object
+      required: [firstName, lastName, email, password]
+      properties:
+        firstName:
+          type: string
+          example: Martina
+        lastName:
+          type: string
+          example: Gómez
+        email:
+          type: string
+          format: email
+          description: Debe ser único
+          example: martina@test.com
+        password:
+          type: string
+          example: "123456"
+        role:
+          type: string
+          enum: [admin, customer, store, driver]
+          default: customer
+        isAvailable:
+          type: boolean
+          default: false
+
+    UserUpdate:
+      type: object
+      description: Todos los campos son opcionales. Solo se modifican los que se envían.
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        role:
+          type: string
+          enum: [admin, customer, store, driver]
+        isAvailable:
+          type: boolean
+
+    StoreCreate:
+      type: object
+      required: [name, address, owner]
+      properties:
+        name:
+          type: string
+          example: Kiosco Centro
+        address:
+          type: string
+          example: Av. Siempre Viva 742
+        owner:
+          allOf:
+            - $ref: "#/components/schemas/ObjectId"
+          description: ID del usuario dueño del comercio
+
+    StoreUpdate:
+      type: object
+      description: Todos los campos son opcionales. Solo se modifican los que se envían.
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        owner:
+          $ref: "#/components/schemas/ObjectId"
+        isActive:
+          type: boolean
+
+    OrderCreate:
+      type: object
+      required: [customer, store, items, deliveryAddress]
+      properties:
+        customer:
+          allOf:
+            - $ref: "#/components/schemas/ObjectId"
+          description: ID de un usuario existente
+        store:
+          allOf:
+            - $ref: "#/components/schemas/ObjectId"
+          description: ID de un comercio existente
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        deliveryAddress:
+          type: string
+          example: Av. Siempre Viva 742
+        priority:
+          type: string
+          enum: [low, normal, high]
+          default: normal
+
+    OrderStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [created, assigned, picked_up, in_transit, delivered, cancelled]
+          example: in_transit
+
+    ProductCreate:
+      type: object
+      required: [name, price, stock, store]
+      properties:
+        name:
+          type: string
+          example: Caja mediana
+        price:
+          type: number
+          example: 1500
+        stock:
+          type: number
+          example: 10
+        store:
+          allOf:
+            - $ref: "#/components/schemas/ObjectId"
+          description: ID de un comercio existente
+
+    ProductUpdate:
+      type: object
+      description: Todos los campos son opcionales. Si se envía stock, el status se recalcula automáticamente.
+      properties:
+        name:
+          type: string
+        price:
+          type: number
+        stock:
+          type: number
+        store:
+          $ref: "#/components/schemas/ObjectId"
+
+    DeliveryCreate:
+      type: object
+      required: [order, driver]
+      properties:
+        order:
+          allOf:
+            - $ref: "#/components/schemas/ObjectId"
+          description: ID de un pedido existente que todavía no tenga entrega
+        driver:
+          allOf:
+            - $ref: "#/components/schemas/ObjectId"
+          description: ID de un usuario con role driver que esté disponible
+        priority:
+          type: string
+          enum: [low, normal, high]
+          default: normal
+        notes:
+          type: string
+          example: Entregar en recepción
+
+    DeliveryStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [assigned, in_transit, delivered, cancelled]
+          example: in_transit
+
+    MockGenerateDataRequest:
+      type: object
+      description: Todas las cantidades son opcionales. Si se omiten, se usan los valores por defecto.
+      properties:
+        users:
+          type: integer
+          minimum: 1
+          default: 10
+        stores:
+          type: integer
+          minimum: 1
+          default: 5
+        drivers:
+          type: integer
+          minimum: 1
+          default: 3
+        orders:
+          type: integer
+          minimum: 1
+          default: 10
+        deliveries:
+          type: integer
+          minimum: 1
+          default: 5
+
+    MockGenerateDataResult:
+      type: object
+      properties:
+        users:
+          type: integer
+          description: Incluye los usuarios con role customer y con role store
+          example: 15
+        stores:
+          type: integer
+          example: 5
+        drivers:
+          type: integer
+          example: 3
+        orders:
+          type: integer
+          example: 10
+        deliveries:
+          type: integer
+          example: 5

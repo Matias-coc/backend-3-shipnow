@@ -1,0 +1,123 @@
+paths:
+  /api/mocks/mockingusers:
+    get:
+      summary: Generar usuarios de prueba
+      description: Genera usuarios con role customer en memoria. No se guardan en la base de datos.
+      tags:
+        - Mocks
+      parameters:
+        - name: qty
+          in: query
+          required: false
+          description: Cantidad de usuarios a generar. Debe ser un entero positivo. Si se omite, se generan 10.
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+      responses:
+        "200":
+          description: Usuarios de prueba generados
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/User"
+        "400":
+          description: La cantidad no es un entero positivo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                cantidadInvalida:
+                  $ref: "#/components/examples/InvalidMockAmount"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /api/mocks/mockingorders:
+    get:
+      summary: Generar pedidos de prueba
+      description: Genera pedidos con clientes y comercios simulados, todo en memoria. No se guarda nada en la base de datos.
+      tags:
+        - Mocks
+      parameters:
+        - name: qty
+          in: query
+          required: false
+          description: Cantidad de pedidos a generar. Debe ser un entero positivo. Si se omite, se generan 10.
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+      responses:
+        "200":
+          description: Pedidos de prueba generados
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Order"
+        "400":
+          description: La cantidad no es un entero positivo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                cantidadInvalida:
+                  $ref: "#/components/examples/InvalidMockAmount"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /api/mocks/generateData:
+    post:
+      summary: Generar y guardar datos de prueba
+      description: >-
+        Genera datos de prueba y los guarda en MongoDB, respetando las relaciones entre entidades:
+        usuarios (clientes y comercios), comercios, repartidores, pedidos y entregas.
+        Todas las cantidades son opcionales. Un body vacío usa los valores por defecto.
+      tags:
+        - Mocks
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MockGenerateDataRequest"
+      responses:
+        "200":
+          description: Datos de prueba generados y guardados
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/MockGenerateDataResult"
+        "400":
+          description: Alguna cantidad no es un entero positivo, el body no es un objeto o el JSON está mal formado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                cantidadInvalida:
+                  $ref: "#/components/examples/InvalidMockAmount"
+                bodyInvalido:
+                  $ref: "#/components/examples/ValidationError"
+                jsonInvalido:
+                  $ref: "#/components/examples/InvalidJsonBody"
+        "500":
+          $ref: "#/components/responses/InternalServerError"

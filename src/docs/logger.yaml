@@ -1,0 +1,23 @@
+paths:
+  /loggerTest:
+    get:
+      summary: Probar los niveles del logger
+      description: Genera un mensaje por cada nivel (debug, http, info, warning, error y fatal). Sirve para validar el comportamiento del logger en consola y en archivo.
+      tags:
+        - Logger
+      responses:
+        "200":
+          description: Logs generados correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Logs generados correctamente
+                  payload:
+                    type: object

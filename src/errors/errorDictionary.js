@@ -11,6 +11,12 @@ export const ERROR_CODES = {
   INVALID_MOCK_AMOUNT: "INVALID_MOCK_AMOUNT",
   DUPLICATE_KEY_ERROR: "DUPLICATE_KEY_ERROR",
   INVALID_JSON_BODY: "INVALID_JSON_BODY",
+  DELIVERY_NOT_FOUND: "DELIVERY_NOT_FOUND",
+  DELIVERY_ALREADY_ASSIGNED: "DELIVERY_ALREADY_ASSIGNED",
+  DRIVER_NOT_AVAILABLE: "DRIVER_NOT_AVAILABLE",
+  INVALID_DELIVERY_STATUS: "INVALID_DELIVERY_STATUS",
+  INVALID_DRIVER: "INVALID_DRIVER",
+  INVALID_DATA: "INVALID_DATA",
 };
 
 export const ERROR_DICTIONARY = {
@@ -26,4 +32,10 @@ export const ERROR_DICTIONARY = {
   INVALID_MOCK_AMOUNT: { statusCode: 400, message: "La cantidad solicitada no es válida" },
   INVALID_JSON_BODY: { statusCode: 400, message: "El cuerpo de la petición JSON no es válido" },
   DUPLICATE_KEY_ERROR: { statusCode: 409, message: "Ya existe un registro con ese valor único (por ejemplo, el email)" },
+  DELIVERY_NOT_FOUND: { statusCode: 404, message: "Entrega no encontrada" },
+  DELIVERY_ALREADY_ASSIGNED: { statusCode: 409, message: "El pedido ya tiene una entrega asignada" },
+  DRIVER_NOT_AVAILABLE: { statusCode: 409, message: "El repartidor no está disponible para tomar una nueva entrega" },
+  INVALID_DELIVERY_STATUS: { statusCode: 400, message: "Estado de entrega inválido" },
+  INVALID_DRIVER: { statusCode: 400, message: "El usuario indicado no es un repartidor" },
+  INVALID_DATA: { statusCode: 400, message: "Los datos enviados no son válidos" },
 };

@@ -1,0 +1,116 @@
+components:
+  examples:
+    InternalServerErrorCode:
+      summary: INTERNAL_SERVER_ERROR
+      value:
+        status: error
+        message: Error interno en el servidor
+        code: INTERNAL_SERVER_ERROR
+    ValidationError:
+      summary: VALIDATION_ERROR
+      value:
+        status: error
+        message: Faltan datos obligatorios
+        code: VALIDATION_ERROR
+    InvalidIdMongoose:
+      summary: INVALID_ID_MONGOOSE
+      value:
+        status: error
+        message: ID inválido
+        code: INVALID_ID_MONGOOSE
+    InvalidJsonBody:
+      summary: INVALID_JSON_BODY
+      value:
+        status: error
+        message: El cuerpo de la petición JSON no es válido
+        code: INVALID_JSON_BODY
+    InvalidData:
+      summary: INVALID_DATA
+      value:
+        status: error
+        message: Los datos enviados no son válidos
+        code: INVALID_DATA
+    DuplicateKeyError:
+      summary: DUPLICATE_KEY_ERROR
+      value:
+        status: error
+        message: Ya existe un registro con ese valor único (por ejemplo, el email)
+        code: DUPLICATE_KEY_ERROR
+    UserNotFound:
+      summary: USER_NOT_FOUND
+      value:
+        status: error
+        message: Usuario no encontrado
+        code: USER_NOT_FOUND
+    StoreNotFound:
+      summary: STORE_NOT_FOUND
+      value:
+        status: error
+        message: Comercio no encontrado
+        code: STORE_NOT_FOUND
+    OrderNotFound:
+      summary: ORDER_NOT_FOUND
+      value:
+        status: error
+        message: Pedido no encontrado
+        code: ORDER_NOT_FOUND
+    ProductNotFound:
+      summary: PRODUCT_NOT_FOUND
+      value:
+        status: error
+        message: Producto no encontrado
+        code: PRODUCT_NOT_FOUND
+    DeliveryNotFound:
+      summary: DELIVERY_NOT_FOUND
+      value:
+        status: error
+        message: Entrega no encontrada
+        code: DELIVERY_NOT_FOUND
+    InvalidOrderStatus:
+      summary: INVALID_ORDER_STATUS
+      value:
+        status: error
+        message: Estado de pedido inválido
+        code: INVALID_ORDER_STATUS
+    InvalidDeliveryStatus:
+      summary: INVALID_DELIVERY_STATUS
+      value:
+        status: error
+        message: Estado de entrega inválido
+        code: INVALID_DELIVERY_STATUS
+    InvalidMockAmount:
+      summary: INVALID_MOCK_AMOUNT
+      value:
+        status: error
+        message: La cantidad solicitada no es válida
+        code: INVALID_MOCK_AMOUNT
+    InvalidDriver:
+      summary: INVALID_DRIVER
+      value:
+        status: error
+        message: El usuario indicado no es un repartidor
+        code: INVALID_DRIVER
+    DriverNotAvailable:
+      summary: DRIVER_NOT_AVAILABLE
+      value:
+        status: error
+        message: El repartidor no está disponible para tomar una nueva entrega
+        code: DRIVER_NOT_AVAILABLE
+    DeliveryAlreadyAssigned:
+      summary: DELIVERY_ALREADY_ASSIGNED
+      value:
+        status: error
+        message: El pedido ya tiene una entrega asignada
+        code: DELIVERY_ALREADY_ASSIGNED
+
+
+  responses:
+    InternalServerError:
+      description: Error inesperado del servidor
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            errorInterno:
+              $ref: "#/components/examples/InternalServerErrorCode"
