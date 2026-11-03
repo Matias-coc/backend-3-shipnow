@@ -30,6 +30,8 @@ El pedido contiene una lista de items, una dirección de entrega, un total calcu
 
 La consigna original del Módulo 1 menciona las entidades `Products` y `Users`. El proyecto ShipNow entregado por la cátedra no incluye una entidad `Products` en su estado base — sus entidades son `User`, `Store` y `Order`. En la primera iteración se refactorizaron `Users`, `Stores` y `Orders` siguiendo el mismo patrón de 3 capas. En esta iteración se agregó además `Products`, con relación a `Store`, para cumplir íntegramente con la consigna.
 
+En el Módulo 5 (Swagger) la consigna pide documentar el grupo Deliveries, pero el proyecto base no tenía endpoints de entregas (solo el modelo y los mocks). Antes de documentarlos se construyó la API de entregas (/api/deliveries) con el mismo patrón de capas, para que la documentación describa endpoints reales. Además, los errores se documentan con el formato que la API realmente devuelve (status, message y code), que difiere del campo error que muestra el ejemplo de la guía.
+
 ### Entidades principales
 
 ### User
@@ -371,6 +373,63 @@ PUT /api/products/:pid
 DELETE /api/products/:pid
 ```
 
+### Deliveries
+
+Una entrega asigna un repartidor (usuario con role: driver) a un pedido. Ver "Entidad Delivery" más abajo.
+
+### Obtener entregas
+
+```http
+GET /api/deliveries
+```
+
+Devuelve el pedido y el repartidor completos de cada entrega.
+
+### Obtener entrega por ID
+
+```http
+GET /api/deliveries/:did
+```
+
+### Crear entrega
+
+```http
+POST /api/deliveries
+```
+
+Body de ejemplo:
+
+```json
+{
+  "order": "ID_DEL_PEDIDO",
+  "driver": "ID_DEL_REPARTIDOR",
+  "priority": "normal",
+  "notes": "Entregar en recepción"
+}
+```
+
+Reglas: el pedido debe existir y no tener una entrega asignada; el usuario debe existir, tener role: driver y estar disponible (isAvailable: true). priority y notes son opcionales. Crear una entrega no modifica el estado del pedido ni la disponibilidad del repartidor.
+
+### Actualizar estado de la entrega
+
+```http
+PUT /api/deliveries/:did/status
+```
+
+Body de ejemplo:
+
+```json
+{
+  "status": "in_transit"
+}
+```
+
+### Eliminar entrega
+
+```http
+DELETE /api/deliveries/:did
+```
+
 ## Mocking
 
 La API expone un conjunto de endpoints bajo `/api/mocks` para generar datos de prueba.
@@ -499,8 +558,13 @@ La API centraliza todo el manejo de errores en una única capa, en vez de respon
 | `INVALID_ORDER_STATUS` | 400 | Se intentó setear un estado de pedido que no existe |
 | `INVALID_MOCK_AMOUNT` | 400 | La cantidad pedida en `/api/mocks` no es un entero positivo (rechaza decimales, cero, negativos y texto) |
 | `INVALID_JSON_BODY` | 400 | El cuerpo de la petición no es un JSON válido |
+| `INVALID_DATA` | 400 | Un dato enviado no cumple las reglas del modelo (por ejemplo, un role o una priority que no existen) |
+| `INVALID_DELIVERY_STATUS` | 400 | Se intentó setear un estado de entrega que no existe |
+| `INVALID_DRIVER` | 400 | 	El usuario indicado como repartidor no tiene role: driver |
 | `DUPLICATE_KEY_ERROR` | 409 | Ya existe un registro con ese valor único (por ejemplo, un email repetido) |
-| `USER_NOT_FOUND` / `STORE_NOT_FOUND` / `ORDER_NOT_FOUND` / `PRODUCT_NOT_FOUND` | 404 | El recurso solicitado no existe |
+| `DRIVER_NOT_AVAILABLE` | 409 | El repartidor no está disponible para tomar una nueva entrega |
+| `DELIVERY_ALREADY_ASSIGNED` | 409 | El pedido ya tiene una entrega asignada |
+| `USER_NOT_FOUND` / `STORE_NOT_FOUND` / `ORDER_NOT_FOUND` / `PRODUCT_NOT_FOUND` / `DELIVERY_NOT_FOUND` | 404 | El recurso solicitado no existe |
 | `ROUTE_NOT_FOUND` | 404 | La URL pedida no coincide con ninguna ruta de la API |
 | `INTERNAL_SERVER_ERROR` | 500 | Error inesperado no controlado |
 
@@ -550,6 +614,21 @@ POST /api/users
 (enviando un body con JSON mal formado, por ejemplo con una llave sin cerrar)
 → 400, `INVALID_JSON_BODY`
 
+→ 400, `INVALID_DATA` (el role no es un valor permitido)
+
+```http
+PUT /api/deliveries/:did/status
+Body: { "status": "volando" }
+```
+
+→ 400, `INVALID_DELIVERY_STATUS`
+
+```http
+POST /api/deliveries
+```
+
+(con el ID de un pedido que ya tiene una entrega asignada) → 409, DELIVERY_ALREADY_ASSIGNED
+
 ## Logging y monitoreo
 
 El proyecto usa **Winston** como logger centralizado (`src/config/logger.js`) y **winston-daily-rotate-file** para guardar errores en archivos con rotación diaria. Cualquier módulo puede usarlo con `import logger from '../config/logger.js'`, sin repetir configuración.
@@ -598,6 +677,53 @@ Para probar el modo producción: `NODE_ENV=production npm start`.
 - Errores esperados de negocio, ruta inexistente y cantidad inválida en mocks (`warning`, vía el middleware de errores)
 - Errores inesperados, con stack trace (`error`)
 - Generación de datos de prueba y creación de pedidos (`info`)
+
+### Documentación con Swagger (OpenAPI)
+
+La API está documentada con OpenAPI 3.0 y se puede explorar y probar desde el navegador con Swagger UI.
+
+- URL: http://localhost:8080/api/docs (el puerto sale de la variable PORT)
+- Librerías: swagger-jsdoc (arma el documento a partir de archivos YAML) y swagger-ui-express (muestra la interfaz)
+
+### Dónde está la documentación
+
+Toda la documentación vive en src/docs/, separada de las rutas:
+
+
+```txt
+src/docs/
+  swagger.config.js   configuración general: información, servidor, tags y dónde buscar los YAML
+  schemas.yaml        schemas reutilizables (entidades, bodies de request, respuesta exitosa y de error)
+  errors.yaml         ejemplos de error reutilizables, uno por código del diccionario de errores
+  users.yaml          endpoints de usuarios
+  stores.yaml         endpoints de comercios
+  orders.yaml         endpoints de pedidos
+  products.yaml       endpoints de productos
+  deliveries.yaml     endpoints de entregas
+  mocks.yaml          endpoints de datos de prueba
+  logger.yaml         endpoint de prueba del logger
+  health.yaml         estado de la API
+```
+
+La interfaz se monta en app.js antes del middleware de rutas inexistentes. Los endpoints se agrupan con tags: Users, Stores, Orders, Products, Deliveries, Mocks, Logger y Health.
+
+### Qué documenta cada endpoint
+
+Método, ruta, descripción, parámetros (de ruta o de query), body de la petición, la respuesta exitosa con su schema y las respuestas de error. Solo se documentan los errores que cada endpoint realmente puede devolver, con ejemplos reutilizados desde errors.yaml. El formato de error documentado es el real de la API: status, message y code.
+
+### Cómo probar un endpoint desde Swagger
+
+1. Levantar el servidor (npm run dev).
+2. Abrir http://localhost:8080/api/docs.
+3. Expandir un endpoint, presionar Try it out, completar parámetros o body y presionar Execute.
+
+### Cómo documentar un endpoint nuevo
+
+1. Abrir (o crear) el YAML del grupo en src/docs/.
+2. Agregar la ruta con su tags, parameters, requestBody y responses, reutilizando schemas y ejemplos con $ref.
+3. Guardar: nodemon también vigila los archivos .yaml y reinicia el servidor solo.
+
+Si un grupo aparece vacío en Swagger, conviene revisar la terminal: un error de sangría en el YAML descarta todo el archivo.
 
 ## Instalación y ejecución
 
@@ -655,6 +781,7 @@ config/env.config.js
 config/logger.js
 constants/index.js
 mocks
+docs
 ```
 
 La configuración de entorno (`PORT`, `MONGODB_URI`, `NODE_ENV`) se valida al arranque: si falta alguna variable crítica, la aplicación no inicia y muestra un error descriptivo. Los roles de usuario, estados y prioridad de los pedidos están centralizados como constantes inmutables (`Object.freeze`) en `constants/index.js`.
@@ -663,11 +790,11 @@ Se agregó la entidad `Products`, con relación a `Store` y cálculo automático
 Se eliminaron los accesos directos a `process.env` en `server.js` y `config/db.js`: toda la configuración se consume exclusivamente desde `config/env.config.js`.
 El manejo de errores está centralizado en un middleware global (`errorHandler.js`), con un diccionario de errores de dominio (`errorDictionary.js`) y validación de entradas en el módulo de mocks.
 Se incorporó logging centralizado con Winston (niveles, archivos con rotación, endpoint /loggerTest).
+Se agregó la API de entregas (/api/deliveries), con reglas de negocio (el repartidor debe estar disponible y el pedido no puede tener dos entregas). La API está documentada con Swagger (OpenAPI 3.0) y se puede explorar en /api/docs.
 
 Todavía no incorpora:
 
 ```txt
-Swagger
 tests automatizados
 Multer
 Docker

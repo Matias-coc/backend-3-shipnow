@@ -61,7 +61,7 @@ const deleteDelivery = async (id) => {
     if (!delivery) {
         throw createError(ERROR_CODES.DELIVERY_NOT_FOUND);
     }
-    return await deliveryRepository.delete(id);
+    return await deliveryRepository.remove(id);
 };
 
 export default { getAllDeliveries, getDeliveryById, createDelivery, updateDeliveryStatus, deleteDelivery };

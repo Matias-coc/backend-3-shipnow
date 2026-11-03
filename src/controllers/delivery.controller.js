@@ -34,7 +34,7 @@ const updateDeliveryStatus = async (req, res, next) => {
         const { did } = req.params;
         const { status } = req.body;
         const delivery = await deliveryService.updateDeliveryStatus(did, status);
-        successResponse(res, { message: 'Estado de entrega atualizado', payload: delivery });
+        successResponse(res, { message: 'Estado de entrega actualizado', payload: delivery });
     } catch (error) {
         next(error);
     }

@@ -95,7 +95,7 @@ paths:
             schema:
               $ref: "#/components/schemas/MockGenerateDataRequest"
       responses:
-        "200":
+        "201":
           description: Datos de prueba generados y guardados
           content:
             application/json:

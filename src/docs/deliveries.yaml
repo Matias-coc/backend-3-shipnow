@@ -1,0 +1,233 @@
+paths:
+  /api/deliveries:
+    get:
+      summary: Listar entregas
+      description: Devuelve todas las entregas registradas, con el pedido y el repartidor completos.
+      tags:
+        - Deliveries
+      responses:
+        "200":
+          description: Lista de entregas
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Delivery"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      summary: Crear entrega
+      description: >-
+        Asigna un repartidor a un pedido. El pedido debe existir y no tener una entrega asignada,
+        y el usuario indicado debe tener role driver y estar disponible (isAvailable en true).
+      tags:
+        - Deliveries
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeliveryCreate"
+      responses:
+        "201":
+          description: Entrega creada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/Delivery"
+        "400":
+          description: Faltan datos, algún ID o dato es inválido, el usuario no es repartidor o el JSON está mal formado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                faltanDatos:
+                  $ref: "#/components/examples/ValidationError"
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+                datosInvalidos:
+                  $ref: "#/components/examples/InvalidData"
+                noEsRepartidor:
+                  $ref: "#/components/examples/InvalidDriver"
+                jsonInvalido:
+                  $ref: "#/components/examples/InvalidJsonBody"
+        "404":
+          description: No existe el pedido o el repartidor indicados
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                pedidoNoEncontrado:
+                  $ref: "#/components/examples/OrderNotFound"
+                repartidorNoEncontrado:
+                  $ref: "#/components/examples/UserNotFound"
+        "409":
+          description: El repartidor no está disponible o el pedido ya tiene una entrega asignada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                repartidorNoDisponible:
+                  $ref: "#/components/examples/DriverNotAvailable"
+                entregaYaAsignada:
+                  $ref: "#/components/examples/DeliveryAlreadyAssigned"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /api/deliveries/{did}:
+    get:
+      summary: Obtener entrega por ID
+      description: Devuelve una entrega según su ID, con el pedido y el repartidor completos.
+      tags:
+        - Deliveries
+      parameters:
+        - name: did
+          in: path
+          description: ID de la entrega
+          required: true
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+      responses:
+        "200":
+          description: Entrega encontrada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/Delivery"
+        "400":
+          description: El ID no tiene un formato válido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+        "404":
+          description: No existe una entrega con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                noEncontrada:
+                  $ref: "#/components/examples/DeliveryNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      summary: Eliminar entrega
+      description: Elimina una entrega según su ID.
+      tags:
+        - Deliveries
+      parameters:
+        - name: did
+          in: path
+          description: ID de la entrega
+          required: true
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+      responses:
+        "200":
+          description: Entrega eliminada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/Delivery"
+        "400":
+          description: El ID no tiene un formato válido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+        "404":
+          description: No existe una entrega con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                noEncontrada:
+                  $ref: "#/components/examples/DeliveryNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /api/deliveries/{did}/status:
+    put:
+      summary: Actualizar estado de la entrega
+      description: Cambia el estado de una entrega según su ID.
+      tags:
+        - Deliveries
+      parameters:
+        - name: did
+          in: path
+          description: ID de la entrega
+          required: true
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeliveryStatusUpdate"
+      responses:
+        "200":
+          description: Estado de la entrega actualizado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/Delivery"
+        "400":
+          description: El ID no tiene un formato válido, el estado no existe o el JSON está mal formado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+                estadoInvalido:
+                  $ref: "#/components/examples/InvalidDeliveryStatus"
+                jsonInvalido:
+                  $ref: "#/components/examples/InvalidJsonBody"
+        "404":
+          description: No existe una entrega con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                noEncontrada:
+                  $ref: "#/components/examples/DeliveryNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"

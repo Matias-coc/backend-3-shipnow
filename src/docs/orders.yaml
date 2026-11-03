@@ -60,7 +60,7 @@ paths:
                 idInvalido:
                   $ref: "#/components/examples/InvalidIdMongoose"
         "404":
-          description: No existe un comercio con ese ID
+          description: No existe el cliente o el comercio indicados
           content:
             application/json:
               schema:
@@ -68,7 +68,7 @@ paths:
               examples:
                 usuarioNoEncontrado:
                   $ref: "#/components/examples/UserNotFound"
-                tiendaNoEncontrada:
+                comercioNoEncontrado:
                   $ref: "#/components/examples/StoreNotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"

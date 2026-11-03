@@ -154,7 +154,7 @@ paths:
                   $ref: "#/components/examples/InvalidIdMongoose"
                 datosInvalidos:
                   $ref: "#/components/examples/InvalidData"
-                JSONInvalido:
+                jsonInvalido:
                   $ref: "#/components/examples/InvalidJsonBody"
         "404":
           description: No existe un usuario con ese ID

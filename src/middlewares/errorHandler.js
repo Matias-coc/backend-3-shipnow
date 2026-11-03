@@ -14,11 +14,11 @@ export function errorHandler(error, req, res, next) {
   }
 
   if (error.type === 'entity.parse.failed') {
-  handledError = createError(ERROR_CODES.INVALID_JSON_BODY);
+    handledError = createError(ERROR_CODES.INVALID_JSON_BODY);
 }
 
   if (error.name === 'ValidationError') {
-  handledError = createError(ERROR_CODES.INVALID_DATA);
+    handledError = createError(ERROR_CODES.INVALID_DATA);
 }
 
   const context = { method: req.method, path: req.originalUrl };
@@ -29,7 +29,6 @@ export function errorHandler(error, req, res, next) {
   } else if (handledError.statusCode >= 500) {
     logger.error(handledError.message, { ...context, code: handledError.code });
   } else {
-    
     logger.warning(handledError.message, { ...context, code: handledError.code });
   }
 

@@ -42,7 +42,7 @@ const createOrder = async (data) => {
 
     const order = await orderRepository.create({ customer, store, items, deliveryAddress, total, priority });
 
-    logger.info(`Orden creada con ID`, { orderId: order._id, total });
+    logger.info(`Pedido creado con ID`, { orderId: order._id, total });
 
     return order;
 };
