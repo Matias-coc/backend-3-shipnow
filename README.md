@@ -480,7 +480,7 @@ Genera y guarda en MongoDB, en este orden, respetando las relaciones entre entid
 5. Pedidos (`Order`), usando los clientes y comercios ya guardados
 6. Entregas (`Delivery`), usando los pedidos y repartidores ya guardados
 
-Respuesta esperada:
+Respuesta esperada (status 201):
 
 ```json
 {
