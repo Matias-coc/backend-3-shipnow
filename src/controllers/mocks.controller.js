@@ -24,7 +24,7 @@ const getMockOrders = async (req, res,next) => {
 const generateData = async (req, res, next) => {
     try {
         const result = await mocksService.generateData(req.body);
-        successResponse(res, { status: 201, message: 'Datos de prueba generados y guardados', payload: result });
+        successResponse(res, { statusCode: 201, message: 'Datos de prueba generados y guardados', payload: result });
     } catch (error) {
         next(error);
     }
