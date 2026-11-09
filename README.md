@@ -32,6 +32,8 @@ La consigna original del Módulo 1 menciona las entidades `Products` y `Users`. 
 
 En el Módulo 5 (Swagger) la consigna pide documentar el grupo Deliveries, pero el proyecto base no tenía endpoints de entregas (solo el modelo y los mocks). Antes de documentarlos se construyó la API de entregas (/api/deliveries) con el mismo patrón de capas, para que la documentación describa endpoints reales. Además, los errores se documentan con el formato que la API realmente devuelve (status, message y code), que difiere del campo error que muestra el ejemplo de la guía.
 
+En el Módulo 6, los tests verifican el campo code de los errores (el que devuelve la API) y la cantidad por defecto de los mocks (10), que difieren de los ejemplos de la guía (error y 50).
+
 ### Entidades principales
 
 ### User
@@ -725,6 +727,84 @@ Método, ruta, descripción, parámetros (de ruta o de query), body de la petici
 
 Si un grupo aparece vacío en Swagger, conviene revisar la terminal: un error de sangría en el YAML descarta todo el archivo.
 
+## Testing
+
+La API cuenta con tests automatizados de integración. Se escriben con **Mocha** (organiza y ejecuta los tests), **Chai** (compara lo obtenido con lo esperado) y **Supertest** (hace peticiones HTTP a la aplicación sin necesidad de levantar el servidor).
+
+### Cómo ejecutar los tests
+
+1. Crear un archivo `.env.test` en la raíz a partir de `.env.test.example`. La variable `MONGODB_URI` debe apuntar a una base de datos **distinta a la de desarrollo** (por ejemplo `shipnow-test`):
+
+```env
+PORT=8081
+MONGODB_URI=<tu-connection-string-de-mongodb-atlas>/shipnow-test
+NODE_ENV=test
+```
+
+2. Ejecutar todos los tests:
+
+```bash
+npm test
+```
+
+Para ejecutar solo un grupo, filtrando por nombre:
+
+```bash
+npm test -- --grep "Orders API"
+```
+
+El script usa `NODE_ENV=test`: la aplicación lee `.env.test` en lugar de `.env` y el logger queda en silencio, para no mezclar sus mensajes con el resultado de los tests.
+
+### Cómo están organizados
+
+```txt
+tests/
+  setup.js              conexión a la base de testing, limpieza inicial y final
+  helpers/
+    db.js               limpieza de colecciones y desconexión
+    factories.js        funciones que crean datos de prueba (usuarios, pedidos, entregas...)
+    assertions.js       verificaciones reutilizables del formato de respuesta
+    routes.js           lista las rutas reales de la aplicación
+  users.test.js
+  stores.test.js
+  orders.test.js
+  products.test.js
+  deliveries.test.js
+  mocks.test.js
+  logger.test.js
+  health.test.js
+  errors.test.js
+  swagger.test.js
+```
+
+### Qué se prueba
+
+| Archivo | Qué cubre |
+|---|---|
+| `users.test.js` | Listar, consultar, crear (con valores por defecto), actualizar y eliminar usuarios. Errores: datos faltantes, `role` inválido, email duplicado, ID inválido y usuario inexistente |
+| `orders.test.js` | Listar (con cliente y comercio completos), consultar, crear (con total calculado y estado inicial), actualizar estado y eliminar. Errores: items faltantes o vacíos, falta de dirección, cliente o comercio inexistente, ID inválido, prioridad inválida, estado inválido y pedido inexistente |
+| `deliveries.test.js` | Listar, consultar, asignar un repartidor, actualizar estado y eliminar. Reglas de negocio: repartidor inexistente, que no sea repartidor o que no esté disponible, pedido que ya tiene una entrega, prioridad y estado inválidos |
+| `stores.test.js` y `products.test.js` | Operaciones básicas y cálculo automático del `status` de un producto según su stock |
+| `mocks.test.js` | `mockingusers` y `mockingorders` (cantidad por defecto, cantidad pedida, sin guardar en la base, cantidades inválidas) y `generateData` (guardado, referencias coherentes entre entidades, ejecución repetida, valores por defecto, cantidades y body inválidos) |
+| `logger.test.js` y `health.test.js` | El endpoint `/loggerTest` y los endpoints de estado de la API |
+| `errors.test.js` | Ruta inexistente, JSON mal formado, ID inválido e inexistente en los cinco recursos, y error inesperado sin exponer detalles técnicos |
+| `swagger.test.js` | Swagger UI disponible y coherencia entre la documentación y la API real |
+
+### Aislamiento de los tests
+
+- Usan una **base de datos de testing separada**. Antes de empezar, el `setup` se niega a correr si el nombre de la base no contiene `test`, para que nunca se limpien los datos de desarrollo.
+- Cada test crea los datos que necesita con las funciones de `helpers/factories.js` y, al terminar, se vacían las colecciones (se borran los documentos, pero se conservan las colecciones y sus índices, como el del email único). Por eso ningún test depende de otro ni del orden de ejecución.
+
+### Coherencia con Swagger
+
+`swagger.test.js` comprueba automáticamente que la documentación diga la verdad:
+
+- Todas las rutas documentadas existen en la API, y todas las rutas de la API están documentadas.
+- Cada ejemplo de error documentado coincide con el diccionario de errores (código y mensaje).
+- Cada error se documenta bajo el status HTTP que realmente le corresponde.
+- Todos los códigos del diccionario están documentados (salvo `ROUTE_NOT_FOUND`).
+- Los endpoints que crean recursos documentan el status `201`.
+
 ## Instalación y ejecución
 
 1. Clonar el repositorio y entrar a la carpeta del proyecto.
@@ -782,6 +862,7 @@ config/logger.js
 constants/index.js
 mocks
 docs
+test
 ```
 
 La configuración de entorno (`PORT`, `MONGODB_URI`, `NODE_ENV`) se valida al arranque: si falta alguna variable crítica, la aplicación no inicia y muestra un error descriptivo. Los roles de usuario, estados y prioridad de los pedidos están centralizados como constantes inmutables (`Object.freeze`) en `constants/index.js`.
@@ -791,11 +872,11 @@ Se eliminaron los accesos directos a `process.env` en `server.js` y `config/db.j
 El manejo de errores está centralizado en un middleware global (`errorHandler.js`), con un diccionario de errores de dominio (`errorDictionary.js`) y validación de entradas en el módulo de mocks.
 Se incorporó logging centralizado con Winston (niveles, archivos con rotación, endpoint /loggerTest).
 Se agregó la API de entregas (/api/deliveries), con reglas de negocio (el repartidor debe estar disponible y el pedido no puede tener dos entregas). La API está documentada con Swagger (OpenAPI 3.0) y se puede explorar en /api/docs.
+Se incorporaron tests automatizados de integración (Mocha, Chai y Supertest) con una base de datos de testing separada (npm test).
 
 Todavía no incorpora:
 
 ```txt
-tests automatizados
 Multer
 Docker
 ```

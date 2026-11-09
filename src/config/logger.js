@@ -25,6 +25,7 @@ const logger = winston.createLogger({
   levels: customLevels.levels,
   level: config.nodeEnv === 'production' ? 'info' : 'debug',
   format: logFormat,
+  silent: config.nodeEnv === 'test',
   transports: [
     new winston.transports.Console(),
     new DailyRotateFile({
