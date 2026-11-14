@@ -3,7 +3,8 @@ import userRepository from '../repositories/user.repository.js';
 import storeRepository from '../repositories/store.repository.js';
 import { createError } from '../errors/apiResponse.js';
 import { ERROR_CODES } from '../errors/errorDictionary.js';
-import { ORDER_STATUS } from '../constants/index.js'
+import { ORDER_STATUS, DOCUMENT_TYPES } from '../constants/index.js'
+import { buildFileMetadata, removeFile } from '../utils/file.utils.js';
 import logger from '../config/logger.js';
 
 const getAllOrders = async () => {
@@ -66,4 +67,35 @@ const deleteOrder = async (id) => {
     return await orderRepository.remove(id);
 }
 
-export default { getAllOrders, getOrderById, createOrder, updateOrderStatus, deleteOrder };
+const addProof = async (id, file) => {
+    if (!file) {
+        throw createError(ERROR_CODES.FILE_REQUIRED);
+    }
+
+    // Si algo falla después de que Multer guardó el archivo, se borra para no dejarlo huérfano
+    try {
+        const order = await orderRepository.getById(id);
+        if (!order) {
+            throw createError(ERROR_CODES.ORDER_NOT_FOUND);
+        }
+
+        const previousProofPath = order.proof?.path;
+        const proof = buildFileMetadata(file, DOCUMENT_TYPES.DELIVERY_PROOF);
+        const updatedOrder = await orderRepository.setProof(id, proof);
+
+        // Si el pedido ya tenía comprobante, el anterior queda reemplazado y se elimina del disco
+        if (previousProofPath) {
+            await removeFile(previousProofPath);
+        }
+
+        logger.info('Comprobante asociado al pedido', { orderId: id, fileName: proof.fileName, size: proof.size });
+
+        return updatedOrder;
+    } catch (error) {
+        await removeFile(file.path);
+        logger.warning('No se pudo asociar el comprobante al pedido', { orderId: id, code: error.code, reason: error.message });
+        throw error;
+    }
+};
+
+export default { getAllOrders, getOrderById, createOrder, updateOrderStatus, addProof, deleteOrder };

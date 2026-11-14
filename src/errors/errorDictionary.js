@@ -17,6 +17,12 @@ export const ERROR_CODES = {
   INVALID_DELIVERY_STATUS: "INVALID_DELIVERY_STATUS",
   INVALID_DRIVER: "INVALID_DRIVER",
   INVALID_DATA: "INVALID_DATA",
+  FILE_REQUIRED: "FILE_REQUIRED",
+  INVALID_FILE_TYPE: "INVALID_FILE_TYPE",
+  FILE_TOO_LARGE: "FILE_TOO_LARGE",
+  INVALID_FILE_FIELD: "INVALID_FILE_FIELD",
+  INVALID_DOCUMENT_TYPE: "INVALID_DOCUMENT_TYPE",
+  UPLOAD_ERROR: "UPLOAD_ERROR",
 };
 
 export const ERROR_DICTIONARY = {
@@ -38,4 +44,10 @@ export const ERROR_DICTIONARY = {
   INVALID_DELIVERY_STATUS: { statusCode: 400, message: "Estado de entrega inválido" },
   INVALID_DRIVER: { statusCode: 400, message: "El usuario indicado no es un repartidor" },
   INVALID_DATA: { statusCode: 400, message: "Los datos enviados no son válidos" },
+  FILE_REQUIRED: { statusCode: 400, message: "El archivo es obligatorio" },
+  INVALID_FILE_TYPE: { statusCode: 400, message: "Tipo de archivo no permitido (solo PDF, JPEG, PNG o WEBP)" },
+  FILE_TOO_LARGE: { statusCode: 413, message: "El archivo supera el tamaño máximo permitido de 5 MB" },
+  INVALID_FILE_FIELD: { statusCode: 400, message: "El campo del archivo no es el esperado" },
+  INVALID_DOCUMENT_TYPE: { statusCode: 400, message: "Tipo de documento inválido" },
+  UPLOAD_ERROR: { statusCode: 500, message: "Error al guardar el archivo" },
 };

@@ -216,3 +216,88 @@ paths:
                   $ref: "#/components/examples/OrderNotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+
+  /api/orders/{oid}/proof:
+    post:
+      summary: Subir comprobante de entrega
+      description: |
+        Sube el comprobante de entrega de un pedido (PDF, JPEG, PNG o WEBP, máximo 5 MB).
+        El archivo se guarda en el servidor (`uploads/proofs`) y sus metadatos se registran en el campo `proof` del pedido.
+        Si el pedido ya tenía comprobante, el nuevo lo reemplaza.
+      tags:
+        - Orders
+      parameters:
+        - in: path
+          name: oid
+          required: true
+          description: ID del pedido
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [proof]
+              properties:
+                proof:
+                  type: string
+                  format: binary
+                  description: Comprobante a subir (campo `proof`). PDF, JPEG, PNG o WEBP, hasta 5 MB.
+      responses:
+        "200":
+          description: Comprobante cargado. Devuelve el pedido actualizado.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/Order"
+        "400":
+          description: Archivo faltante, tipo de archivo inválido, campo de archivo incorrecto o ID inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                archivoRequerido:
+                  $ref: "#/components/examples/FileRequired"
+                tipoArchivoInvalido:
+                  $ref: "#/components/examples/InvalidFileType"
+                campoInvalido:
+                  $ref: "#/components/examples/InvalidFileField"
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+        "404":
+          description: No existe un pedido con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                pedidoNoEncontrado:
+                  $ref: "#/components/examples/OrderNotFound"
+        "413":
+          description: El archivo supera el tamaño máximo permitido (5 MB)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                archivoGrande:
+                  $ref: "#/components/examples/FileTooLarge"
+        "500":
+          description: Error al guardar el archivo o error inesperado del servidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                errorAlGuardar:
+                  $ref: "#/components/examples/UploadError"
+                errorInterno:
+                  $ref: "#/components/examples/InternalServerErrorCode"

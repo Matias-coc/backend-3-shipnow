@@ -50,4 +50,14 @@ const deleteOrder = async (req, res, next) => {
     }
 };
 
-export default { getOrders, getOrder, createOrder, updateOrderStatus, deleteOrder };
+const uploadProof = async (req, res, next) => {
+    try {
+        const { oid } = req.params;
+        const order = await orderService.addProof(oid, req.file);
+        successResponse(res, { message: 'Comprobante cargado', payload: order });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export default { getOrders, getOrder, createOrder, updateOrderStatus, uploadProof, deleteOrder };

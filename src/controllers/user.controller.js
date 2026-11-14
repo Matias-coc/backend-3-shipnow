@@ -49,4 +49,15 @@ const deleteUser = async (req, res, next) => {
     }
 };
 
-export default { getUsers, getUser, createUser, updateUser, deleteUser };
+const uploadDocument = async (req, res, next) => {
+    try {
+        const { uid } = req.params;
+        const { type } = req.body;
+        const document = await userService.addDocument(uid, req.file, type);
+        successResponse(res, { message: 'Documento cargado', payload: document });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export default { getUsers, getUser, createUser, updateUser, deleteUser, uploadDocument };

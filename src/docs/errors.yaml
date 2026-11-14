@@ -103,6 +103,42 @@ components:
         message: El pedido ya tiene una entrega asignada
         code: DELIVERY_ALREADY_ASSIGNED
 
+    FileRequired:
+      summary: FILE_REQUIRED
+      value:
+        status: error
+        message: El archivo es obligatorio
+        code: FILE_REQUIRED
+    InvalidFileType:
+      summary: INVALID_FILE_TYPE
+      value:
+        status: error
+        message: Tipo de archivo no permitido (solo PDF, JPEG, PNG o WEBP)
+        code: INVALID_FILE_TYPE
+    FileTooLarge:
+      summary: FILE_TOO_LARGE
+      value:
+        status: error
+        message: El archivo supera el tamaño máximo permitido de 5 MB
+        code: FILE_TOO_LARGE
+    InvalidFileField:
+      summary: INVALID_FILE_FIELD
+      value:
+        status: error
+        message: El campo del archivo no es el esperado
+        code: INVALID_FILE_FIELD
+    InvalidDocumentType:
+      summary: INVALID_DOCUMENT_TYPE
+      value:
+        status: error
+        message: Tipo de documento inválido
+        code: INVALID_DOCUMENT_TYPE
+    UploadError:
+      summary: UPLOAD_ERROR
+      value:
+        status: error
+        message: Error al guardar el archivo
+        code: UPLOAD_ERROR
 
   responses:
     InternalServerError:

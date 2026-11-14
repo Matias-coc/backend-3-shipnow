@@ -52,6 +52,8 @@ Campos principales:
 }
 ```
 
+El usuario también tiene un arreglo `documents` con los metadatos de los archivos que cargó (ver *Carga de archivos*).
+
 Roles disponibles:
 
 ```txt
@@ -520,6 +522,91 @@ Estados posibles: `assigned`, `in_transit`, `delivered`, `cancelled`.
 
 ---
 
+## Carga de archivos (Multer)
+
+La API recibe archivos con **Multer** (`multipart/form-data`). Los archivos se guardan en carpetas del servidor y en MongoDB se registran **solo los metadatos** (nombre original, nombre generado, ruta, MIME type, tamaño, tipo de documento y fecha de carga).
+
+### Configuración
+
+- La configuración está centralizada en `src/middlewares/upload.middleware.js` (no en los routers). Los valores (tipos permitidos, tamaño máximo, carpetas) están como constantes en `src/constants/index.js`.
+- **Tipos permitidos:** `application/pdf`, `image/jpeg`, `image/png`, `image/webp`. **Tamaño máximo:** 5 MB.
+- **Nombre del archivo:** lo genera el servidor (`<timestamp>-<uuid><extensión>`); el nombre original solo se guarda como metadato.
+- **Carpetas:** `uploads/documents` (documentos de usuario), `uploads/licenses` (licencias de repartidor) y `uploads/proofs` (comprobantes de entrega). Se versiona únicamente la estructura (`.gitkeep`); los archivos subidos están en `.gitignore`.
+- Si la operación falla después de guardar el archivo (usuario o pedido inexistente, tipo inválido, error de base de datos), el archivo se elimina del servidor para no dejar archivos huérfanos.
+
+### Subir documento de usuario
+
+```txt
+POST /api/users/:uid/documents        (multipart/form-data)
+```
+
+| Campo | Descripción |
+|---|---|
+| `type` | `user_document` o `driver_license`. Enviarlo **antes** que el archivo. |
+| `document` | Archivo (PDF, JPEG, PNG o WEBP, hasta 5 MB). |
+
+`driver_license` solo se acepta para usuarios con `role: driver`. Responde `200` con los metadatos del documento registrado:
+
+```json
+{
+  "status": "success",
+  "message": "Documento cargado",
+  "payload": {
+    "originalName": "licencia.pdf",
+    "fileName": "1717601111111-3f1c2a7e-8b9d-4c1a-9a55-0f6d2c1e7a10.pdf",
+    "path": "uploads/licenses/1717601111111-3f1c2a7e-8b9d-4c1a-9a55-0f6d2c1e7a10.pdf",
+    "mimeType": "application/pdf",
+    "size": 24533,
+    "type": "driver_license",
+    "uploadedAt": "2026-11-14T10:00:00.000Z"
+  }
+}
+```
+
+### Subir comprobante de entrega
+
+```txt
+POST /api/orders/:oid/proof           (multipart/form-data)
+```
+
+| Campo | Descripción |
+|---|---|
+| `proof` | Archivo (PDF, JPEG, PNG o WEBP, hasta 5 MB). |
+
+Responde `200` con el pedido actualizado (campo `proof` con los metadatos). Si el pedido ya tenía un comprobante, el nuevo lo reemplaza y el archivo anterior se elimina. Esta versión no modifica el estado del pedido al cargar el comprobante.
+
+### Errores de archivos
+
+| Código | Status HTTP | Situación |
+|---|---|---|
+| `FILE_REQUIRED` | 400 | No se envió ningún archivo |
+| `INVALID_FILE_TYPE` | 400 | El MIME type del archivo no está permitido |
+| `INVALID_FILE_FIELD` | 400 | El archivo llegó con un nombre de campo distinto al esperado (`document` / `proof`) |
+| `INVALID_DOCUMENT_TYPE` | 400 | El `type` no existe o no se envió |
+| `FILE_TOO_LARGE` | 413 | El archivo supera los 5 MB |
+| `UPLOAD_ERROR` | 500 | No se pudo guardar el archivo en el servidor |
+
+Además se reutilizan `USER_NOT_FOUND`, `ORDER_NOT_FOUND`, `INVALID_ID_MONGOOSE` e `INVALID_DRIVER`. Todos responden con el formato general `{ status, message, code }`.
+
+### Logging de archivos
+
+Se registran: carga exitosa de documento (`info`), comprobante asociado a un pedido (`info`), intento de tipo de archivo no permitido, archivo demasiado grande o campo incorrecto (`warning`), documento o comprobante que no se pudo asociar (`warning`) y errores al guardar (`error`).
+
+### Cómo probarlo
+
+Desde Swagger (`/api/docs`) con *Try it out*, o con curl:
+
+```bash
+curl -X POST http://localhost:8080/api/users/ID_USUARIO/documents \
+  -F "type=user_document" \
+  -F "document=@./documento.pdf"
+
+curl -X POST http://localhost:8080/api/orders/ID_PEDIDO/proof \
+  -F "proof=@./entrega.jpg"
+```
+
+Los tests de carga están en `tests/uploads.test.js` (usan los archivos de `tests/fixtures/`).
+
 ## Manejo de errores
 
 La API centraliza todo el manejo de errores en una única capa, en vez de responder errores de forma aislada en cada ruta o controller. Los errores inesperados se registran con su stack trace en el log, y al cliente le llega un mensaje genérico (INTERNAL_SERVER_ERROR), sin detalles técnicos.
@@ -568,6 +655,9 @@ La API centraliza todo el manejo de errores en una única capa, en vez de respon
 | `DELIVERY_ALREADY_ASSIGNED` | 409 | El pedido ya tiene una entrega asignada |
 | `USER_NOT_FOUND` / `STORE_NOT_FOUND` / `ORDER_NOT_FOUND` / `PRODUCT_NOT_FOUND` / `DELIVERY_NOT_FOUND` | 404 | El recurso solicitado no existe |
 | `ROUTE_NOT_FOUND` | 404 | La URL pedida no coincide con ninguna ruta de la API |
+| `FILE_REQUIRED` / `INVALID_FILE_TYPE` / `INVALID_FILE_FIELD` / `INVALID_DOCUMENT_TYPE` | 400 | Errores de carga de archivos (ver sección *Carga de archivos*) |
+| `FILE_TOO_LARGE` | 413 | El archivo supera el tamaño máximo permitido (5 MB) |
+| `UPLOAD_ERROR` | 500 | No se pudo guardar el archivo en el servidor |
 | `INTERNAL_SERVER_ERROR` | 500 | Error inesperado no controlado |
 
 ### Cómo probar el comportamiento ante casos inválidos
@@ -679,6 +769,7 @@ Para probar el modo producción: `NODE_ENV=production npm start`.
 - Errores esperados de negocio, ruta inexistente y cantidad inválida en mocks (`warning`, vía el middleware de errores)
 - Errores inesperados, con stack trace (`error`)
 - Generación de datos de prueba y creación de pedidos (`info`)
+- Carga de documentos y comprobantes (`info`) y cargas rechazadas o fallidas (`warning` / `error`)
 
 ### Documentación con Swagger (OpenAPI)
 
@@ -775,6 +866,8 @@ tests/
   health.test.js
   errors.test.js
   swagger.test.js
+  uploads.test.js       carga de documentos y comprobantes (usa tests/fixtures/)
+  fixtures/             archivos de ejemplo para los tests de carga
 ```
 
 ### Qué se prueba
@@ -873,11 +966,11 @@ El manejo de errores está centralizado en un middleware global (`errorHandler.j
 Se incorporó logging centralizado con Winston (niveles, archivos con rotación, endpoint /loggerTest).
 Se agregó la API de entregas (/api/deliveries), con reglas de negocio (el repartidor debe estar disponible y el pedido no puede tener dos entregas). La API está documentada con Swagger (OpenAPI 3.0) y se puede explorar en /api/docs.
 Se incorporaron tests automatizados de integración (Mocha, Chai y Supertest) con una base de datos de testing separada (npm test).
+Se agregó la carga de archivos con Multer: documentos de usuario (`POST /api/users/:uid/documents`) y comprobantes de entrega (`POST /api/orders/:oid/proof`), con validaciones, errores centralizados, logging, Swagger y tests.
 
 Todavía no incorpora:
 
 ```txt
-Multer
 Docker
 ```
 

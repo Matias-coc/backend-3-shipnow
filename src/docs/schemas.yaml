@@ -71,13 +71,68 @@ components:
           description: Disponibilidad del repartidor (aplica a usuarios con role driver)
         documents:
           type: array
-          description: Documentos asociados al usuario
+          description: Metadatos de los documentos cargados por el usuario (el archivo se guarda en el servidor)
           items:
-            type: object
+            $ref: "#/components/schemas/UserDocument"
         createdAt:
           type: string
           format: date-time
         updatedAt:
+          type: string
+          format: date-time
+
+    UserDocument:
+      type: object
+      description: Metadatos de un archivo asociado a un usuario
+      properties:
+        originalName:
+          type: string
+          example: licencia.pdf
+        fileName:
+          type: string
+          description: Nombre generado por el servidor
+          example: 1717601111111-3f1c2a7e-8b9d-4c1a-9a55-0f6d2c1e7a10.pdf
+        path:
+          type: string
+          example: uploads/licenses/1717601111111-3f1c2a7e-8b9d-4c1a-9a55-0f6d2c1e7a10.pdf
+        mimeType:
+          type: string
+          example: application/pdf
+        size:
+          type: number
+          description: Tamaño en bytes
+          example: 24533
+        type:
+          type: string
+          enum: [user_document, driver_license]
+          example: driver_license
+        uploadedAt:
+          type: string
+          format: date-time
+
+    OrderProof:
+      type: object
+      description: Metadatos del comprobante de entrega de un pedido
+      properties:
+        originalName:
+          type: string
+          example: entrega.jpg
+        fileName:
+          type: string
+          example: 1717601111111-3f1c2a7e-8b9d-4c1a-9a55-0f6d2c1e7a10.jpg
+        path:
+          type: string
+          example: uploads/proofs/1717601111111-3f1c2a7e-8b9d-4c1a-9a55-0f6d2c1e7a10.jpg
+        mimeType:
+          type: string
+          example: image/jpeg
+        size:
+          type: number
+          example: 81234
+        type:
+          type: string
+          example: delivery_proof
+        uploadedAt:
           type: string
           format: date-time
 
@@ -156,9 +211,10 @@ components:
           enum: [low, normal, high]
           default: normal
         proof:
-          type: object
+          allOf:
+            - $ref: "#/components/schemas/OrderProof"
           nullable: true
-          description: Comprobante asociado al pedido (por ahora siempre null)
+          description: Metadatos del comprobante de entrega asociado al pedido (null si todavía no se cargó)
         createdAt:
           type: string
           format: date-time

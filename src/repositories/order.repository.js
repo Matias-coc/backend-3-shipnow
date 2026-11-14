@@ -16,6 +16,10 @@ const updateStatus = async (id, status) => {
     return await Order.findByIdAndUpdate(id, { status }, { new: true, runValidators: true });
 }
 
+const setProof = async (id, proof) => {
+    return await Order.findByIdAndUpdate(id, { proof }, { new: true, runValidators: true });
+}
+
 const remove = async (id) => {
     return await Order.findByIdAndDelete(id);
 }
@@ -24,4 +28,4 @@ const insertMany = async (data) => {
     return await Order.insertMany(data);
 }
 
-export default { getAll, getById, create, updateStatus, remove, insertMany };
+export default { getAll, getById, create, updateStatus, setProof, remove, insertMany };

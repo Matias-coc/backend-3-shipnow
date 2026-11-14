@@ -20,8 +20,12 @@ const remove = async (id) => {
     return await User.findByIdAndDelete(id);
 }
 
+const addDocument = async (id, document) => {
+    return await User.findByIdAndUpdate(id, { $push: { documents: document } }, { new: true, runValidators: true });
+}
+
 const insertMany = async (data) => {
     return await User.insertMany(data);
 }
 
-export default { getAll, create, getById, update, remove, insertMany };
+export default { getAll, create, getById, update, remove, addDocument, insertMany };

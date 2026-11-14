@@ -220,3 +220,98 @@ paths:
                   $ref: "#/components/examples/UserNotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+
+  /api/users/{uid}/documents:
+    post:
+      summary: Subir documento de usuario
+      description: |
+        Sube un archivo (PDF, JPEG, PNG o WEBP, máximo 5 MB) y registra sus metadatos en el usuario.
+        El archivo se guarda en el servidor (`uploads/documents` o `uploads/licenses`); en la base solo se guardan los metadatos.
+        Enviar el campo `type` **antes** que el archivo en el formulario.
+        Una licencia (`driver_license`) solo puede cargarse a un usuario con role `driver`.
+      tags:
+        - Users
+      parameters:
+        - in: path
+          name: uid
+          required: true
+          description: ID del usuario
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [type, document]
+              properties:
+                type:
+                  type: string
+                  enum: [user_document, driver_license]
+                  description: Tipo de documento permitido
+                  example: user_document
+                document:
+                  type: string
+                  format: binary
+                  description: Archivo a subir (campo `document`). PDF, JPEG, PNG o WEBP, hasta 5 MB.
+      responses:
+        "200":
+          description: Documento cargado. Devuelve los metadatos registrados.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/SuccessResponse"
+                  - type: object
+                    properties:
+                      payload:
+                        $ref: "#/components/schemas/UserDocument"
+        "400":
+          description: Archivo faltante, tipo de archivo o de documento inválido, campo de archivo incorrecto, ID inválido o licencia para un usuario que no es repartidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                archivoRequerido:
+                  $ref: "#/components/examples/FileRequired"
+                tipoArchivoInvalido:
+                  $ref: "#/components/examples/InvalidFileType"
+                tipoDocumentoInvalido:
+                  $ref: "#/components/examples/InvalidDocumentType"
+                campoInvalido:
+                  $ref: "#/components/examples/InvalidFileField"
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
+                noEsRepartidor:
+                  $ref: "#/components/examples/InvalidDriver"
+        "404":
+          description: No existe un usuario con ese ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                noEncontrado:
+                  $ref: "#/components/examples/UserNotFound"
+        "413":
+          description: El archivo supera el tamaño máximo permitido (5 MB)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                archivoGrande:
+                  $ref: "#/components/examples/FileTooLarge"
+        "500":
+          description: Error al guardar el archivo o error inesperado del servidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                errorAlGuardar:
+                  $ref: "#/components/examples/UploadError"
+                errorInterno:
+                  $ref: "#/components/examples/InternalServerErrorCode"

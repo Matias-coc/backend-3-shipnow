@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { ORDER_STATUS, PRIORITY_LEVELS } from "../constants/index.js";
+import { ORDER_STATUS, PRIORITY_LEVELS, DOCUMENT_TYPES } from "../constants/index.js";
 
 const orderItemSchema = new mongoose.Schema(
   {
@@ -19,6 +19,20 @@ const orderItemSchema = new mongoose.Schema(
   {
     _id: false
   }
+);
+
+// Metadatos del comprobante de entrega (el archivo vive en el servidor, no en MongoDB)
+const proofSchema = new mongoose.Schema(
+  {
+    originalName: { type: String, required: true },
+    fileName: { type: String, required: true },
+    path: { type: String, required: true },
+    mimeType: { type: String, required: true },
+    size: { type: Number, required: true },
+    type: { type: String, default: DOCUMENT_TYPES.DELIVERY_PROOF },
+    uploadedAt: { type: Date, default: Date.now }
+  },
+  { _id: false }
 );
 
 const orderSchema = new mongoose.Schema(
@@ -56,7 +70,7 @@ const orderSchema = new mongoose.Schema(
       default: PRIORITY_LEVELS.NORMAL
     },
     proof: {
-      type: Object,
+      type: proofSchema,
       default: null
     }
   },
