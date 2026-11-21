@@ -3,12 +3,22 @@ import userRepository from '../repositories/user.repository.js';
 import storeRepository from '../repositories/store.repository.js';
 import { createError } from '../errors/apiResponse.js';
 import { ERROR_CODES } from '../errors/errorDictionary.js';
-import { ORDER_STATUS, DOCUMENT_TYPES } from '../constants/index.js'
+import { ORDER_STATUS, PRIORITY_LEVELS, DOCUMENT_TYPES } from '../constants/index.js'
+import { parsePagination, buildPagination, parseEnumFilter, parseIdFilter, compactFilter } from '../utils/query.utils.js';
 import { buildFileMetadata, removeFile } from '../utils/file.utils.js';
 import logger from '../config/logger.js';
 
-const getAllOrders = async () => {
-    return await orderRepository.getAll();
+const getAllOrders = async (query = {}) => {
+    const { page, limit, skip } = parsePagination(query);
+    const filter = compactFilter({
+        status: parseEnumFilter(query.status, Object.values(ORDER_STATUS), ERROR_CODES.INVALID_ORDER_STATUS),
+        priority: parseEnumFilter(query.priority, Object.values(PRIORITY_LEVELS), ERROR_CODES.INVALID_DATA),
+        customer: parseIdFilter(query.customer),
+        store: parseIdFilter(query.store),
+    });
+
+    const { items, total } = await orderRepository.getAll({ filter, skip, limit });
+    return { items, pagination: buildPagination({ page, limit, total }) };
 }
 
 const getOrderById = async (id) => {

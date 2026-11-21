@@ -4,9 +4,16 @@ import { ERROR_CODES } from '../errors/errorDictionary.js';
 import { USER_DOCUMENT_TYPES, DOCUMENT_TYPES, USER_ROLES } from '../constants/index.js';
 import { buildFileMetadata, removeFile } from '../utils/file.utils.js';
 import logger from '../config/logger.js';
+import { parsePagination, buildPagination, parseEnumFilter, compactFilter } from '../utils/query.utils.js';
 
-const getAllUsers = async () => {
-    return await userRepository.getAll();
+const getAllUsers = async (query = {}) => {
+    const { page, limit, skip } = parsePagination(query);
+    const filter = compactFilter({
+        role: parseEnumFilter(query.role, Object.values(USER_ROLES), ERROR_CODES.INVALID_DATA),
+    });
+
+    const { items, total } = await userRepository.getAll({ filter, skip, limit });
+    return { items, pagination: buildPagination({ page, limit, total }) };
 };
 
 const getUserById = async (id) => {

@@ -1,0 +1,37 @@
+# Dependencias: se instalan dentro de la imagen con npm ci
+node_modules
+
+# Variables de entorno y credenciales: se pasan al ejecutar el contenedor, nunca dentro de la imagen
+.env
+.env.*
+
+# Control de versiones y editores
+.git
+.gitignore
+.vscode
+.idea
+
+# Archivos generados al ejecutar la API
+logs
+*.log
+npm-debug.log*
+uploads
+coverage
+.nyc_output
+
+# Temporales
+tmp
+temp
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Tests y documentación: no hacen falta para ejecutar la API
+tests
+.mocharc.json
+README.md
+
+# Archivos de Docker
+Dockerfile
+.dockerignore
+docker-compose.yml

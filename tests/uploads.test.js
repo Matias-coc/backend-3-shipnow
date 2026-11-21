@@ -15,7 +15,6 @@ const PDF = path.join(FIXTURES, 'document.pdf');
 const PNG = path.join(FIXTURES, 'proof.png');
 const TXT = path.join(FIXTURES, 'not-allowed.txt');
 
-// Archivos que crean los tests: se borran al terminar cada caso para no ensuciar uploads/
 let createdFiles = [];
 const track = (response) => {
   const files = [response.body?.payload?.path, response.body?.payload?.proof?.path].filter(Boolean);
@@ -23,7 +22,6 @@ const track = (response) => {
 };
 const uploadedFilesIn = (folder) => fs.readdirSync(folder).filter((name) => name !== '.gitkeep');
 
-// El campo "type" se envía antes que el archivo, para que Multer lo tenga disponible al elegir la carpeta
 const uploadUserDocument = (userId, { type, file = PDF, field = 'document' } = {}) => {
   const req = request(app).post(`/api/users/${userId}/documents`);
   if (type) req.field('type', type);

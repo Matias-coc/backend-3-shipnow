@@ -3,8 +3,8 @@ import { successResponse } from '../errors/apiResponse.js';
 
 const getOrders = async (req, res, next) => {
     try {
-        const orders = await orderService.getAllOrders();
-        successResponse(res, { message: 'Lista de pedidos', payload: orders });
+        const { items, pagination } = await orderService.getAllOrders(req.query);
+        successResponse(res, { message: 'Lista de pedidos', payload: items, pagination });
     } catch (error) {
         next(error);
     }

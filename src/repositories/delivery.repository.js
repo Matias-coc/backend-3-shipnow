@@ -1,7 +1,11 @@
 import Delivery from "../models/delivery.model.js";
 
-const getAll = async () => {
-  return await Delivery.find().populate("order").populate("driver");
+const getAll = async ({ filter = {}, skip = 0, limit = 10 } = {}) => {
+  const [items, total] = await Promise.all([
+    Delivery.find(filter).sort({ _id: 1 }).skip(skip).limit(limit).populate("order").populate("driver"),
+    Delivery.countDocuments(filter),
+  ]);
+  return { items, total };
 };
 
 const getById = async (id) => {

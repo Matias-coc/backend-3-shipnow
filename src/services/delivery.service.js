@@ -4,9 +4,17 @@ import userRepository from '../repositories/user.repository.js';
 import { createError } from '../errors/apiResponse.js';
 import { ERROR_CODES } from '../errors/errorDictionary.js';
 import { USER_ROLES, DRIVER_STATUS } from '../constants/index.js';
+import { parsePagination, buildPagination, parseEnumFilter, parseIdFilter, compactFilter } from '../utils/query.utils.js';
 
-const getAllDeliveries = async () => {
-    return await deliveryRepository.getAll();
+const getAllDeliveries = async (query = {}) => {
+    const { page, limit, skip } = parsePagination(query);
+    const filter = compactFilter({
+        status: parseEnumFilter(query.status, Object.values(DRIVER_STATUS), ERROR_CODES.INVALID_DELIVERY_STATUS),
+        driver: parseIdFilter(query.driver),
+    });
+
+    const { items, total } = await deliveryRepository.getAll({ filter, skip, limit });
+    return { items, pagination: buildPagination({ page, limit, total }) };
 };
 
 const getDeliveryById = async (id) => {

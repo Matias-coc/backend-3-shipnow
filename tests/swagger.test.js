@@ -7,7 +7,6 @@ import { getRealRoutes } from './helpers/routes.js';
 
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete'];
 
-// Sigue un { $ref: '#/components/...' } hasta llegar al contenido real
 const resolve = (node) => {
   if (node && node.$ref) {
     const target = node.$ref.replace('#/', '').split('/').reduce((current, key) => current[key], swaggerSpecs);
@@ -26,7 +25,6 @@ const getDocumentedRoutes = () => {
   return routes;
 };
 
-// Lista todos los ejemplos de error documentados: { route, httpStatus, example }
 const getDocumentedErrorExamples = () => {
   const found = [];
   for (const [path, operations] of Object.entries(swaggerSpecs.paths)) {

@@ -3,8 +3,8 @@ import { successResponse } from '../errors/apiResponse.js';
 
 const getUsers = async (req, res, next) => {
     try {
-        const users = await userService.getAllUsers();
-        successResponse(res, { message: 'Lista de usuarios', payload: users });
+        const { items, pagination } = await userService.getAllUsers(req.query);
+        successResponse(res, { message: 'Lista de usuarios', payload: items, pagination });
     } catch (error) {
         next(error);
     }

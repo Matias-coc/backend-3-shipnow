@@ -22,7 +22,9 @@ paths:
   /health:
     get:
       summary: Verificar el estado de la API
-      description: Permite comprobar que la API está funcionando.
+      description: |
+        Permite comprobar que la API está funcionando (lo usan Docker y los servicios de monitoreo).
+        Devuelve el estado, el entorno de ejecución, el tiempo en línea y la fecha actual. No expone información sensible.
       tags:
         - Health
       responses:
@@ -39,3 +41,15 @@ paths:
                   message:
                     type: string
                     example: API funcionando
+                  environment:
+                    type: string
+                    description: Entorno de ejecución
+                    example: production
+                  uptime:
+                    type: integer
+                    description: Segundos que lleva en línea el proceso
+                    example: 3600
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-11-15T14:30:00.000Z"

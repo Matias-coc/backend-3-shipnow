@@ -10,7 +10,7 @@ const swaggerOptions = {
       description: 'API REST de logística y envíos: usuarios, comercios, pedidos, productos y entregas.',
     },
     servers: [
-      { url: `http://localhost:${config.port}`, description: 'Servidor local' },
+      { url: config.apiUrl, description: 'Servidor de la API' },
     ],
     tags: [
       { name: 'Users', description: 'Gestión de usuarios (clientes, comercios y repartidores)' },
@@ -18,8 +18,8 @@ const swaggerOptions = {
       { name: 'Orders', description: 'Gestión de pedidos' },
       { name: 'Products', description: 'Gestión de productos de los comercios' },
       { name: 'Deliveries', description: 'Asignación de repartidores a pedidos' },
-      { name: 'Mocks', description: 'Generación de datos de prueba (herramienta de desarrollo)' },
-      { name: 'Logger', description: 'Prueba de los niveles de log (herramienta de desarrollo)' },
+      { name: 'Mocks', description: 'Generación de datos de prueba (herramienta de desarrollo: no está disponible en producción)' },
+      { name: 'Logger', description: 'Prueba de los niveles de log (herramienta de desarrollo: no está disponible en producción)' },
       { name: 'Health', description: 'Estado de la API' },
     ],
   },

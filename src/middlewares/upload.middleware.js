@@ -14,9 +14,6 @@ import {
   USER_DOCUMENT_TYPES,
 } from '../constants/index.js';
 
-// Carpeta de destino de cada ruta. Las funciones reciben la request.
-// Documentos de usuario: depende del tipo (req.body.type). Si el tipo no es válido, se guarda en
-// documents y el service lo rechaza (y borra el archivo).
 const userDocumentFolder = (req) => {
   const type = req.body?.type;
   return USER_DOCUMENT_TYPES.includes(type) ? FOLDER_BY_DOCUMENT_TYPE[type] : UPLOAD_FOLDERS.DOCUMENTS;
@@ -27,11 +24,9 @@ const createStorage = (resolveFolder) =>
   multer.diskStorage({
     destination: (req, file, cb) => {
       const folder = resolveFolder(req);
-      fs.mkdirSync(folder, { recursive: true });
-      cb(null, folder);
+      fs.promises.mkdir(folder, { recursive: true }).then(() => cb(null, folder), cb);
     },
     filename: (req, file, cb) => {
-      // Nombre generado por el servidor; la extensión sale del MIME type, no del nombre original
       const extension = ALLOWED_FILE_TYPES[file.mimetype] ?? path.extname(file.originalname);
       cb(null, `${Date.now()}-${crypto.randomUUID()}${extension}`);
     },
@@ -49,7 +44,6 @@ const fileFilter = (req, file, cb) => {
   cb(createError(ERROR_CODES.INVALID_FILE_TYPE));
 };
 
-// Convierte los errores de Multer al sistema de errores centralizado del proyecto
 const adaptUploadError = (error, req) => {
   if (error instanceof multer.MulterError) {
     const context = { path: req.originalUrl, multerCode: error.code, field: error.field };
@@ -65,15 +59,12 @@ const adaptUploadError = (error, req) => {
     return createError(ERROR_CODES.UPLOAD_ERROR);
   }
 
-  // Errores que ya son de la API (por ejemplo, INVALID_FILE_TYPE del fileFilter)
   if (error.statusCode) return error;
 
-  // Cualquier otro error (por ejemplo, no se pudo escribir en disco)
   logger.error('Error al guardar el archivo en el servidor', { path: req.originalUrl, message: error.message });
   return createError(ERROR_CODES.UPLOAD_ERROR);
 };
 
-// Crea un middleware que recibe UN archivo en el campo indicado y envía los errores a errorHandler
 const createSingleUpload = (fieldName, resolveFolder) => {
   const upload = multer({
     storage: createStorage(resolveFolder),

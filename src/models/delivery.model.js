@@ -33,6 +33,10 @@ const deliverySchema = new mongoose.Schema(
   },
 );
 
+deliverySchema.index({ status: 1 });
+deliverySchema.index({ driver: 1 });
+deliverySchema.index({ order: 1 });
+
 const DeliveryModel = mongoose.model("Delivery", deliverySchema);
 
 export default DeliveryModel;

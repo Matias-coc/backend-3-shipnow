@@ -8,7 +8,6 @@ import { USER_ROLES } from '../../src/constants/index.js';
 let counter = 0;
 const unique = () => `${Date.now().toString(36)}${(counter++).toString(36)}`;
 
-// ID con formato válido de MongoDB que no corresponde a ningún documento
 export const NON_EXISTENT_ID = '000000000000000000000000';
 
 export const createUser = (overrides = {}) =>

@@ -134,7 +134,7 @@ cancelled
 
 ### Health check
 
-Permite verificar que la API está funcionando.
+Permite verificar que la API está funcionando. Lo usa Docker (`HEALTHCHECK`) y sirve para herramientas de monitoreo. Es liviano y no expone información sensible (no incluye URIs, credenciales ni versiones).
 
 ```http
 GET /health
@@ -145,9 +145,14 @@ Respuesta esperada:
 ```json
 {
   "status": "success",
-  "message": "API funcionando"
+  "message": "API funcionando",
+  "environment": "development",
+  "uptime": 3600,
+  "timestamp": "2026-11-15T14:30:00.000Z"
 }
 ```
+
+`uptime` son los segundos que lleva en línea el proceso.
 
 ---
 
@@ -156,8 +161,10 @@ Respuesta esperada:
 ### Obtener usuarios
 
 ```http
-GET /api/users
+GET /api/users?page=1&limit=10&role=driver
 ```
+
+Listado paginado (ver *Paginación y filtros* más abajo). Filtro opcional: `role` (`admin`, `customer`, `store` o `driver`).
 
 ### Obtener usuario por ID
 
@@ -246,8 +253,10 @@ DELETE /api/stores/:sid
 ### Obtener pedidos
 
 ```http
-GET /api/orders
+GET /api/orders?page=1&limit=10&status=in_transit
 ```
+
+Listado paginado (ver *Paginación y filtros* más abajo). Filtros opcionales: `status`, `priority`, `customer` (ID) y `store` (ID).
 
 ### Obtener pedido por ID
 
@@ -384,10 +393,10 @@ Una entrega asigna un repartidor (usuario con role: driver) a un pedido. Ver "En
 ### Obtener entregas
 
 ```http
-GET /api/deliveries
+GET /api/deliveries?page=1&limit=10&status=assigned
 ```
 
-Devuelve el pedido y el repartidor completos de cada entrega.
+Listado paginado (ver *Paginación y filtros* más abajo). Filtros opcionales: `status` y `driver` (ID). Devuelve el pedido y el repartidor completos de cada entrega.
 
 ### Obtener entrega por ID
 
@@ -658,6 +667,7 @@ La API centraliza todo el manejo de errores en una única capa, en vez de respon
 | `FILE_REQUIRED` / `INVALID_FILE_TYPE` / `INVALID_FILE_FIELD` / `INVALID_DOCUMENT_TYPE` | 400 | Errores de carga de archivos (ver sección *Carga de archivos*) |
 | `FILE_TOO_LARGE` | 413 | El archivo supera el tamaño máximo permitido (5 MB) |
 | `UPLOAD_ERROR` | 500 | No se pudo guardar el archivo en el servidor |
+| `INVALID_PAGINATION` | 400 | `page` o `limit` no son enteros positivos, o `limit` supera 100 |
 | `INTERNAL_SERVER_ERROR` | 500 | Error inesperado no controlado |
 
 ### Cómo probar el comportamiento ante casos inválidos
@@ -743,7 +753,9 @@ En Winston, un número menor significa mayor gravedad, y el nivel configurado ac
 El nivel se decide con `NODE_ENV` (validado en `config/env.config.js`):
 
 - **development**: se muestran los seis niveles, incluido `debug` y `http`.
-- **production**: se muestra desde `info` hacia arriba (`info`, `warning`, `error`, `fatal`).
+- **production**: se muestra desde `info` hacia arriba (`info`, `warning`, `error`, `fatal`). Así no se registra cada request (nivel `http`) y se evita llenar los logs.
+
+El nivel se puede cambiar con la variable `LOG_LEVEL` (`fatal`, `error`, `warning`, `info`, `http` o `debug`) sin tocar el código.
 
 ### Dónde se guardan los logs
 
@@ -824,19 +836,16 @@ La API cuenta con tests automatizados de integración. Se escriben con **Mocha**
 
 ### Cómo ejecutar los tests
 
-1. Crear un archivo `.env.test` en la raíz a partir de `.env.test.example`. La variable `MONGODB_URI` debe apuntar a una base de datos **distinta a la de desarrollo** (por ejemplo `shipnow-test`):
-
-```env
-PORT=8081
-MONGODB_URI=<tu-connection-string-de-mongodb-atlas>/shipnow-test
-NODE_ENV=test
-```
-
-2. Ejecutar todos los tests:
+Los tests **no necesitan una base de datos instalada ni un archivo `.env.test`**: usan una base MongoDB en memoria (`mongodb-memory-server`) que se crea al empezar y se apaga al terminar. Desde una instalación limpia:
 
 ```bash
+npm install
 npm test
 ```
+
+- La **primera vez** `mongodb-memory-server` descarga el binario de MongoDB (unos 100 MB, requiere internet). Queda en caché y las siguientes ejecuciones son inmediatas.
+- `NODE_ENV=test` lo define el propio proyecto (`tests/env.setup.js`), por lo que no hace falta `cross-env` ni ninguna variable previa.
+- Si el paquete no está instalado (por ejemplo, tras instalar solo dependencias de producción), `npm test` falla: los tests necesitan las dependencias de desarrollo (`npm install` las incluye).
 
 Para ejecutar solo un grupo, filtrando por nombre:
 
@@ -844,12 +853,15 @@ Para ejecutar solo un grupo, filtrando por nombre:
 npm test -- --grep "Orders API"
 ```
 
-El script usa `NODE_ENV=test`: la aplicación lee `.env.test` en lugar de `.env` y el logger queda en silencio, para no mezclar sus mensajes con el resultado de los tests.
+**Opcional: usar una base externa (por ejemplo, MongoDB Atlas).** Crear `.env.test` a partir de `.env.test.example` con `TEST_MONGODB_URI` apuntando a una base **distinta a la de desarrollo**, cuyo nombre incluya `test` (por ejemplo `shipnow-test`). Si esa variable está definida, los tests la usan en lugar de la base en memoria.
+
+Durante los tests el logger queda en silencio para no mezclar sus mensajes con el resultado.
 
 ### Cómo están organizados
 
 ```txt
 tests/
+  env.setup.js          define NODE_ENV=test y levanta la base MongoDB en memoria
   setup.js              conexión a la base de testing, limpieza inicial y final
   helpers/
     db.js               limpieza de colecciones y desconexión
@@ -866,6 +878,8 @@ tests/
   health.test.js
   errors.test.js
   swagger.test.js
+  pagination.test.js    paginación y filtros de los listados
+  production.test.js    endpoints internos por entorno y validación de variables de entorno
   uploads.test.js       carga de documentos y comprobantes (usa tests/fixtures/)
   fixtures/             archivos de ejemplo para los tests de carga
 ```
@@ -882,10 +896,12 @@ tests/
 | `logger.test.js` y `health.test.js` | El endpoint `/loggerTest` y los endpoints de estado de la API |
 | `errors.test.js` | Ruta inexistente, JSON mal formado, ID inválido e inexistente en los cinco recursos, y error inesperado sin exponer detalles técnicos |
 | `swagger.test.js` | Swagger UI disponible y coherencia entre la documentación y la API real |
+| `pagination.test.js` | Paginación por omisión, `page` y `limit`, páginas sin repetidos, página fuera de rango, valores inválidos y filtros (rol, estado, prioridad, cliente, repartidor), incluido el rechazo de operadores de Mongo en los filtros |
+| `production.test.js` | Mocks y `/loggerTest` no disponibles en producción (y sí en desarrollo), `/health`, Swagger y endpoints principales disponibles, y validación de variables de entorno al iniciar (faltantes, inválidas y valores por defecto) |
 
 ### Aislamiento de los tests
 
-- Usan una **base de datos de testing separada**. Antes de empezar, el `setup` se niega a correr si el nombre de la base no contiene `test`, para que nunca se limpien los datos de desarrollo.
+- Usan una **base de datos de testing separada** (en memoria por omisión). Antes de empezar, el `setup` se niega a correr si el nombre de la base no contiene `test`, para que nunca se limpien los datos de desarrollo.
 - Cada test crea los datos que necesita con las funciones de `helpers/factories.js` y, al terminar, se vacían las colecciones (se borran los documentos, pero se conservan las colecciones y sus índices, como el del email único). Por eso ningún test depende de otro ni del orden de ejecución.
 
 ### Coherencia con Swagger
@@ -907,12 +923,12 @@ tests/
 npm install
 ```
 
-3. Crear un archivo `.env` en la raíz a partir de `.env.example`, completando:
+3. Crear un archivo `.env` en la raíz a partir de `.env.example` (ver la tabla de variables en *Producción y Docker*). Como mínimo:
 
 ```env
-PORT=8080
-MONGODB_URI=<tu-connection-string-de-mongodb-atlas>
 NODE_ENV=development
+PORT=8080
+MONGODB_URI=mongodb+srv://<usuario>:<contraseña>@<cluster>.mongodb.net/shipnow?appName=shipnowDB
 ```
 
 4. Levantar el servidor en modo desarrollo:
@@ -922,6 +938,150 @@ npm run dev
 ```
 
 5. La API queda disponible en `http://localhost:8080`.
+
+## Producción y Docker
+
+> **Estado de la prueba:** los archivos de Docker (`Dockerfile`, `.dockerignore` y `docker-compose.yml`) están preparados, pero **no pudieron probarse en el equipo de desarrollo**. No se logró instalar Docker Desktop porque el equipo no tiene habilitada la virtualización necesaria (WSL 2 / Plataforma de máquina virtual). Por lo tanto, **no se verificó** que la imagen se construya, que el contenedor arranque ni que el `HEALTHCHECK` funcione. Los comandos de abajo son los pasos previstos para esa verificación, pendiente de realizar en un equipo con Docker instalado.
+>
+> Lo que **sí** se verificó: la API completa y sus 171 tests automatizados (`npm test`), la validación de variables de entorno al iniciar, el endpoint `/health` y el comportamiento por entorno (producción y desarrollo).
+
+### Variables de entorno
+
+La configuración se lee **solo** desde `src/config/env.config.js`, que valida las variables al iniciar: si falta una variable crítica o tiene un valor inválido, la API **no arranca** y muestra un mensaje que indica qué corregir. No hay valores sensibles escritos en el código. El archivo `.env.example` tiene todas las variables.
+
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `NODE_ENV` | Sí | `development`, `test` o `production` |
+| `PORT` | Sí | Puerto en el que escucha la API (número entre 1 y 65535) |
+| `MONGODB_URI` | Sí | Cadena de conexión a MongoDB |
+| `LOG_LEVEL` | No | `fatal`, `error`, `warning`, `info`, `http` o `debug`. Por omisión: `debug` en desarrollo y `info` en producción |
+| `CLIENT_URL` | Solo en producción | Origen(es) del cliente permitidos por CORS (varios, separados por comas). En desarrollo, por omisión `http://localhost:5173` |
+| `API_URL` | No | URL pública de la API, que se muestra en Swagger. Por omisión `http://localhost:<PORT>` |
+| `JWT_SECRET` | No aplica | El proyecto todavía no tiene autenticación, así que no se usa |
+
+Hay tres entornos: **desarrollo** (`.env`), **testing** (base MongoDB en memoria por omisión, sin configurar nada) y **producción** (variables definidas en el servidor o en el contenedor).
+
+### Correr la API localmente
+
+```bash
+npm install
+cp .env.example .env     # completar MONGODB_URI
+npm run dev              # desarrollo, con reinicio automático
+npm start                # sin reinicio automático (es lo que usa la imagen Docker)
+```
+
+### Correr los tests
+
+Se ejecutan fuera del contenedor, con una base en memoria (no hace falta configurar nada; ver la sección *Testing*):
+
+```bash
+npm test
+```
+
+### Acceder a Swagger
+
+`http://localhost:<PORT>/api/docs` (con Docker y el puerto por omisión: `http://localhost:8080/api/docs`).
+
+### Criterio para los endpoints internos
+
+| Endpoint | En producción | Motivo |
+|---|---|---|
+| `/api/mocks/*` | **No se monta** (responde `404 ROUTE_NOT_FOUND`) | Genera y guarda datos falsos en la base |
+| `/loggerTest` | **No se monta** (responde `404 ROUTE_NOT_FOUND`) | Es una herramienta de prueba que escribe logs |
+| `/api/docs` (Swagger) | Disponible | Es documentación, no expone datos sensibles |
+| `/health` | Disponible | Lo necesitan Docker y el monitoreo |
+
+El criterio se define en `createApp` (`src/app.js`) según `NODE_ENV`.
+
+### Performance
+
+- **Paginación y filtros:** `GET /api/users`, `/api/orders` y `/api/deliveries` ya no devuelven la colección completa. Los comercios y productos son catálogos chicos y siguen devolviendo la lista completa.
+- **Consultas:** los filtros usan campos con índice (`role`, `status`, `customer`, `store`, `driver`, `order`), el orden es estable (por `_id`) y la cantidad total se cuenta en paralelo con la consulta.
+- **Sin bloqueos:** no hay operaciones sincrónicas pesadas en las requests. La carpeta de destino de los archivos se crea de forma asíncrona, y el body JSON está limitado a 100 KB.
+- **Archivos:** máximo 5 MB, solo PDF, JPEG, PNG y WEBP, con errores controlados (ver *Carga de archivos*). Los archivos subidos no se versionan en Git.
+- **Logs:** en producción el nivel por omisión es `info`, así que no se registra cada request.
+
+#### Paginación y filtros
+
+| Parámetro | Descripción |
+|---|---|
+| `page` | Número de página. Por omisión `1` |
+| `limit` | Resultados por página. Por omisión `10`, máximo `100` |
+
+Si `page` o `limit` no son enteros positivos, o `limit` supera 100, responde `400 INVALID_PAGINATION`. La respuesta mantiene `payload` como lista y suma un bloque `pagination`:
+
+```json
+{
+  "status": "success",
+  "message": "Lista de pedidos",
+  "payload": [],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 42,
+    "totalPages": 5,
+    "hasNextPage": true,
+    "hasPrevPage": false
+  }
+}
+```
+
+Un filtro con un valor inexistente responde con el error del recurso (`INVALID_ORDER_STATUS`, `INVALID_DELIVERY_STATUS` o `INVALID_DATA`), y un ID de filtro inválido responde `INVALID_ID_MONGOOSE`.
+
+### Docker
+
+El proyecto incluye:
+
+- `Dockerfile`: imagen base `node:22-alpine`; copia el proyecto, instala las dependencias de producción con `npm ci --omit=dev`, expone el puerto `8080` y ejecuta `node src/server.js` (el mismo comando que `npm start`, directo con `node` para que la señal `SIGTERM` de Docker llegue a la API). Corre con el usuario `node`, sin privilegios de root, y define un `HEALTHCHECK` sobre `/health`.
+- `.dockerignore`: deja afuera `node_modules`, `.env` (y cualquier `.env.*`), `.git`, `logs`, `uploads`, `coverage`, `tests` y archivos temporales.
+- `docker-compose.yml` (opcional): levanta la API con un solo comando.
+
+**Construir la imagen:**
+
+```bash
+docker build -t shipnow-api .
+```
+
+**Ejecutar el contenedor** pasando las variables desde un archivo externo (el `.env` nunca se copia a la imagen):
+
+```bash
+docker run -d --name shipnow-api -p 8080:8080 --env-file .env shipnow-api
+```
+
+- Con `--env-file` las comillas se toman literalmente: escribir los valores del `.env` **sin comillas** (`PORT=8080`, no `PORT="8080"`).
+- Si en `.env` cambiás `PORT`, usá el mismo número en `-p` (`-p <PORT>:<PORT>`).
+- Para probar el modo producción se pueden pisar variables con `-e`, por ejemplo `-e NODE_ENV=production -e CLIENT_URL=http://localhost:5173`.
+
+**Probar que funciona** *(pendiente de verificar: estos pasos no se ejecutaron todavía)*:
+
+```bash
+curl http://localhost:8080/health          # estado de la API
+# Swagger: http://localhost:8080/api/docs
+curl http://localhost:8080/api/orders      # endpoint principal (listado paginado)
+docker ps                                   # la columna STATUS muestra "healthy" cuando el HEALTHCHECK anda
+docker logs shipnow-api                     # logs de la API
+docker stop shipnow-api                     # envía SIGTERM: la API cierra las conexiones y MongoDB ordenadamente
+```
+
+**Con Docker Compose** (opcional):
+
+```bash
+docker compose up --build
+```
+
+La API usa MongoDB Atlas, por lo que alcanza con definir `MONGODB_URI`. Si se quisiera una base local en Docker, habría que sumarla como otro servicio en el `docker-compose.yml`.
+
+### Cierre ordenado (graceful shutdown)
+
+Cuando el proceso recibe `SIGTERM` (Docker al detener o actualizar el contenedor) o `SIGINT` (`Ctrl+C`), la API deja de aceptar conexiones nuevas, espera a que terminen las que están en curso, cierra la conexión a MongoDB y sale. Si el cierre tarda más de 10 segundos, fuerza la salida.
+
+### Archivos que no deben subirse al repositorio
+
+`node_modules/`, `.env` y `.env.test` (con credenciales), `logs/`, `uploads/` (solo se versionan los `.gitkeep` de la estructura), `coverage/` y cualquier archivo temporal. Sí se versionan `.env.example` y `.env.test.example`, sin valores reales.
+
+### Logs y uploads en Docker
+
+Los logs salen por la consola del contenedor (`docker logs`) y los errores también se guardan en `logs/`. Los archivos subidos se guardan en `uploads/`. **Dentro del contenedor esos archivos no son almacenamiento permanente:** se pierden si el contenedor se elimina. Con `docker-compose.yml` ambas carpetas usan volúmenes; con `docker run` se pueden montar con `-v`. En un entorno de producción real los archivos deberían ir a un servicio externo (S3, Cloudinary o similar), y además eso es necesario para poder correr varias instancias de la API.
 
 ## Arquitectura por capas
 
@@ -968,10 +1128,6 @@ Se agregó la API de entregas (/api/deliveries), con reglas de negocio (el repar
 Se incorporaron tests automatizados de integración (Mocha, Chai y Supertest) con una base de datos de testing separada (npm test).
 Se agregó la carga de archivos con Multer: documentos de usuario (`POST /api/users/:uid/documents`) y comprobantes de entrega (`POST /api/orders/:oid/proof`), con validaciones, errores centralizados, logging, Swagger y tests.
 
-Todavía no incorpora:
-
-```txt
-Docker
-```
 
 Durante el curso, la API será mejorada progresivamente para separar responsabilidades, mejorar la mantenibilidad y acercarse a una estructura más profesional.
+Se preparó la API para producción: listados paginados y con filtros, configuración por entorno validada al iniciar, health check ampliado, cierre ordenado del servidor y archivos de Docker (`Dockerfile`, `.dockerignore` y `docker-compose.yml`), estos últimos **preparados pero sin probar** (ver la sección *Docker*). Ver la sección *Producción y Docker*.

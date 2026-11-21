@@ -1,4 +1,3 @@
-// Devuelve las rutas reales de la app Express como un Set de strings "METODO /ruta/{param}"
 export const getRealRoutes = (app) => {
   const routes = new Set();
 

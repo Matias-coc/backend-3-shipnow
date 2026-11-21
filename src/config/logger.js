@@ -23,7 +23,7 @@ const logFormat = winston.format.combine(
 
 const logger = winston.createLogger({
   levels: customLevels.levels,
-  level: config.nodeEnv === 'production' ? 'info' : 'debug',
+  level: config.logLevel,
   format: logFormat,
   silent: config.nodeEnv === 'test',
   transports: [

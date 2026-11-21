@@ -1,7 +1,10 @@
 import { ERROR_CODES, ERROR_DICTIONARY } from './errorDictionary.js';
 
-export const successResponse = (res, { statusCode = 200, message = '', payload = {} }) => {
-  return res.status(statusCode).json({ status: 'success', message, payload });
+export const successResponse = (res, { statusCode = 200, message = '', payload = {}, pagination } = {}) => {
+  const body = { status: 'success', message, payload };
+  // Solo los listados paginados incluyen este bloque
+  if (pagination) body.pagination = pagination;
+  return res.status(statusCode).json(body);
 };
 
 export const createError = (code) => {

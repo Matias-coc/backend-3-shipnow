@@ -21,7 +21,6 @@ const orderItemSchema = new mongoose.Schema(
   }
 );
 
-// Metadatos del comprobante de entrega (el archivo vive en el servidor, no en MongoDB)
 const proofSchema = new mongoose.Schema(
   {
     originalName: { type: String, required: true },

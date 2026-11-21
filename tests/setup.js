@@ -3,7 +3,6 @@ import connectDB from '../src/config/db.js';
 import { config } from '../src/config/env.config.js';
 import { clearDatabase, ensureIndexes, getDatabaseName, disconnect } from './helpers/db.js';
 
-// Mismo ajuste de DNS que usa server.js para poder resolver el cluster de Atlas
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 export const mochaHooks = {
@@ -14,7 +13,6 @@ export const mochaHooks = {
 
     await connectDB();
 
-    // Seguridad: nunca limpiar una base que no sea de testing
     const dbName = getDatabaseName();
     if (!/test/i.test(dbName)) {
       await disconnect();
@@ -27,6 +25,7 @@ export const mochaHooks = {
 
   async afterAll() {
     await clearDatabase();
-    await disconnect();
+    await disconnect()
+    await globalThis.__MONGOD__?.stop();
   },
 };

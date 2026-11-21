@@ -23,6 +23,7 @@ export const ERROR_CODES = {
   INVALID_FILE_FIELD: "INVALID_FILE_FIELD",
   INVALID_DOCUMENT_TYPE: "INVALID_DOCUMENT_TYPE",
   UPLOAD_ERROR: "UPLOAD_ERROR",
+  INVALID_PAGINATION: "INVALID_PAGINATION",
 };
 
 export const ERROR_DICTIONARY = {
@@ -50,4 +51,5 @@ export const ERROR_DICTIONARY = {
   INVALID_FILE_FIELD: { statusCode: 400, message: "El campo del archivo no es el esperado" },
   INVALID_DOCUMENT_TYPE: { statusCode: 400, message: "Tipo de documento inválido" },
   UPLOAD_ERROR: { statusCode: 500, message: "Error al guardar el archivo" },
+  INVALID_PAGINATION: { statusCode: 400, message: "Paginación inválida: page y limit deben ser enteros positivos (limit máximo 100)" },
 };

@@ -133,6 +133,12 @@ components:
         status: error
         message: Tipo de documento inválido
         code: INVALID_DOCUMENT_TYPE
+    InvalidPagination:
+      summary: INVALID_PAGINATION
+      value:
+        status: error
+        message: "Paginación inválida: page y limit deben ser enteros positivos (limit máximo 100)"
+        code: INVALID_PAGINATION
     UploadError:
       summary: UPLOAD_ERROR
       value:

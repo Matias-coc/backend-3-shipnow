@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import { USER_ROLES, USER_DOCUMENT_TYPES } from "../constants/index.js";
 
-// Metadatos de cada archivo asociado al usuario (el archivo vive en el servidor, no en MongoDB)
 const documentSchema = new mongoose.Schema(
   {
     originalName: { type: String, required: true },

@@ -2,12 +2,23 @@ paths:
   /api/users:
     get:
       summary: Listar usuarios
-      description: Devuelve todos los usuarios registrados.
+      description: |
+        Devuelve los usuarios de forma paginada (por omisión, página 1 con 10 resultados; máximo 100 por página).
+        Se puede filtrar por rol.
       tags:
         - Users
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - in: query
+          name: role
+          description: Filtra por rol
+          schema:
+            type: string
+            enum: [admin, customer, store, driver]
       responses:
         "200":
-          description: Lista de usuarios
+          description: Página de usuarios
           content:
             application/json:
               schema:
@@ -19,6 +30,19 @@ paths:
                         type: array
                         items:
                           $ref: "#/components/schemas/User"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+        "400":
+          description: Paginación inválida o rol inexistente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                paginacionInvalida:
+                  $ref: "#/components/examples/InvalidPagination"
+                rolInvalido:
+                  $ref: "#/components/examples/InvalidData"
         "500":
           $ref: "#/components/responses/InternalServerError"
     post:

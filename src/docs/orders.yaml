@@ -2,12 +2,39 @@ paths:
   /api/orders:
     get:
       summary: Listar pedidos
-      description: Devuelve todos los pedidos registrados.
+      description: |
+        Devuelve los pedidos de forma paginada (por omisión, página 1 con 10 resultados; máximo 100 por página),
+        con el cliente y el comercio completos. Se puede filtrar por estado, prioridad, cliente o comercio.
       tags:
         - Orders
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - in: query
+          name: status
+          description: Filtra por estado del pedido
+          schema:
+            type: string
+            enum: [created, assigned, picked_up, in_transit, delivered, cancelled]
+        - in: query
+          name: priority
+          description: Filtra por prioridad
+          schema:
+            type: string
+            enum: [low, normal, high]
+        - in: query
+          name: customer
+          description: Filtra por ID del cliente
+          schema:
+            $ref: "#/components/schemas/ObjectId"
+        - in: query
+          name: store
+          description: Filtra por ID del comercio
+          schema:
+            $ref: "#/components/schemas/ObjectId"
       responses:
         "200":
-          description: Lista de pedidos
+          description: Página de pedidos
           content:
             application/json:
               schema:
@@ -19,6 +46,23 @@ paths:
                         type: array
                         items:
                           $ref: "#/components/schemas/Order"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+        "400":
+          description: Paginación inválida, estado o prioridad inexistentes, o ID de filtro inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                paginacionInvalida:
+                  $ref: "#/components/examples/InvalidPagination"
+                estadoInvalido:
+                  $ref: "#/components/examples/InvalidOrderStatus"
+                prioridadInvalida:
+                  $ref: "#/components/examples/InvalidData"
+                idInvalido:
+                  $ref: "#/components/examples/InvalidIdMongoose"
         "500":
           $ref: "#/components/responses/InternalServerError"
     post:

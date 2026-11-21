@@ -1,5 +1,46 @@
 components:
+  parameters:
+    Page:
+      in: query
+      name: page
+      description: Número de página (entero positivo). Por omisión, 1.
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    Limit:
+      in: query
+      name: limit
+      description: Cantidad de resultados por página (entero entre 1 y 100). Por omisión, 10.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
   schemas:
+    Pagination:
+      type: object
+      description: Datos de paginación de un listado
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          description: Cantidad total de registros que cumplen el filtro
+          example: 42
+        totalPages:
+          type: integer
+          example: 5
+        hasNextPage:
+          type: boolean
+          example: true
+        hasPrevPage:
+          type: boolean
+          example: false
     # ------------------------------------------------------------------
     # Respuestas genéricas
     # ------------------------------------------------------------------
