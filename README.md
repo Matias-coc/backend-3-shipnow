@@ -941,9 +941,7 @@ npm run dev
 
 ## Producción y Docker
 
-> **Estado de la prueba:** los archivos de Docker (`Dockerfile`, `.dockerignore` y `docker-compose.yml`) están preparados, pero **no pudieron probarse en el equipo de desarrollo**. No se logró instalar Docker Desktop porque el equipo no tiene habilitada la virtualización necesaria (WSL 2 / Plataforma de máquina virtual). Por lo tanto, **no se verificó** que la imagen se construya, que el contenedor arranque ni que el `HEALTHCHECK` funcione. Los comandos de abajo son los pasos previstos para esa verificación, pendiente de realizar en un equipo con Docker instalado.
->
-> Lo que **sí** se verificó: la API completa y sus 171 tests automatizados (`npm test`), la validación de variables de entorno al iniciar, el endpoint `/health` y el comportamiento por entorno (producción y desarrollo).
+> **Estado de la verificación:** el `Dockerfile` y el `.dockerignore` se probaron el 26/11/2026 en Windows con Docker Desktop 4.99.0 (Docker Engine 29.9.3): la imagen se construye, el contenedor arranca, queda `healthy`, y responden `/health`, Swagger y `/api/orders`. Los resultados reales están en *Evidencia de verificación*. `docker-compose.yml` (opcional) también se verificó. Los 171 tests automatizados pasan con `npm test`.
 
 ### Variables de entorno
 
@@ -1034,7 +1032,7 @@ El proyecto incluye:
 
 - `Dockerfile`: imagen base `node:22-alpine`; copia el proyecto, instala las dependencias de producción con `npm ci --omit=dev`, expone el puerto `8080` y ejecuta `node src/server.js` (el mismo comando que `npm start`, directo con `node` para que la señal `SIGTERM` de Docker llegue a la API). Corre con el usuario `node`, sin privilegios de root, y define un `HEALTHCHECK` sobre `/health`.
 - `.dockerignore`: deja afuera `node_modules`, `.env` (y cualquier `.env.*`), `.git`, `logs`, `uploads`, `coverage`, `tests` y archivos temporales.
-- `docker-compose.yml` (opcional): levanta la API con un solo comando.
+- `docker-compose.yml` (opcional, verificado): levanta la API con un solo comando.
 
 **Construir la imagen:**
 
@@ -1052,7 +1050,7 @@ docker run -d --name shipnow-api -p 8080:8080 --env-file .env shipnow-api
 - Si en `.env` cambiás `PORT`, usá el mismo número en `-p` (`-p <PORT>:<PORT>`).
 - Para probar el modo producción se pueden pisar variables con `-e`, por ejemplo `-e NODE_ENV=production -e CLIENT_URL=http://localhost:5173`.
 
-**Probar que funciona** *(pendiente de verificar: estos pasos no se ejecutaron todavía)*:
+**Probar que funciona:**
 
 ```bash
 curl http://localhost:8080/health          # estado de la API
@@ -1082,6 +1080,96 @@ Cuando el proceso recibe `SIGTERM` (Docker al detener o actualizar el contenedor
 ### Logs y uploads en Docker
 
 Los logs salen por la consola del contenedor (`docker logs`) y los errores también se guardan en `logs/`. Los archivos subidos se guardan en `uploads/`. **Dentro del contenedor esos archivos no son almacenamiento permanente:** se pierden si el contenedor se elimina. Con `docker-compose.yml` ambas carpetas usan volúmenes; con `docker run` se pueden montar con `-v`. En un entorno de producción real los archivos deberían ir a un servicio externo (S3, Cloudinary o similar), y además eso es necesario para poder correr varias instancias de la API.
+
+### Evidencia de verificación
+
+Verificado el 26/11/2026 en Windows, con Docker Desktop 4.99.0 (Docker Engine 29.9.3), imagen base `node:22-alpine` y MongoDB Atlas. Los valores sensibles no se muestran.
+
+| Criterio de la rúbrica | Dónde está | Cómo verificarlo | Resultado verificado |
+|---|---|---|---|
+| Paginación y filtros | `src/utils/query.utils.js`, `tests/pagination.test.js` | `curl "http://localhost:8080/api/orders?limit=2"` | Responde `payload` y el bloque `pagination` |
+| Límites en la carga de archivos | `src/middlewares/upload.middleware.js`, `tests/uploads.test.js`, `.gitignore` | `npm test` | Máximo 5 MB, solo PDF/JPEG/PNG/WEBP; `uploads/` no se versiona |
+| Variables de entorno validadas | `src/config/env.config.js`, `.env.example`, `tests/production.test.js` | `npm test` | Sin variables críticas, la API no arranca y muestra un mensaje claro |
+| Health check | `/health`, `tests/health.test.js` | `curl http://localhost:8080/health` | 200 con `status`, `message`, `environment`, `uptime` y `timestamp` |
+| Endpoints internos | `createApp` en `src/app.js` | Contenedor con `-e NODE_ENV=production` | `/api/mocks/*` y `/loggerTest` responden 404 `ROUTE_NOT_FOUND`; Swagger y `/health` siguen disponibles |
+| Tests automatizados | `tests/` | `npm test` | 171 passing (2 s) |
+| Dockerfile funcional | `Dockerfile` | `docker build -t shipnow-api .` | Build terminado (11/11 pasos) |
+| `.dockerignore` | `.dockerignore` | `docker run --rm shipnow-api ls -a /app` | La imagen no contiene `.env`, `.git`, `tests`, `README.md` ni archivos de `uploads/` |
+| Variables desde archivo externo y puerto | `docker run --env-file .env` | `docker ps` | Contenedor `healthy`, puerto `8080` publicado |
+| Cierre ordenado | `src/server.js` | `docker stop` | Log de `SIGTERM` y cierre de servidor y MongoDB |
+| Docker Compose (opcional) | `docker-compose.yml` | `docker compose up -d` | Servicio `healthy` y `/health` responde 200 |
+
+**Construcción de la imagen** (`docker build -t shipnow-api .`): terminó en 16,3 s con 11/11 pasos. El contexto enviado a Docker fue de 268,58 kB, porque `.dockerignore` deja afuera `node_modules`, `.git` y `uploads`. Las dependencias se instalaron dentro de la imagen con `npm ci --omit=dev`.
+
+**Contenedor en ejecución** (`docker run -d --name shipnow-api -p 8080:8080 --env-file .env shipnow-api`):
+
+```text
+$ curl http://localhost:8080/health
+{"status":"success","message":"API funcionando","environment":"development","uptime":44,"timestamp":"2026-11-26T21:17:10.977Z"}
+
+$ docker ps
+IMAGE         STATUS                    PORTS
+shipnow-api   Up 44 seconds (healthy)   0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
+
+$ docker logs shipnow-api
+2026-11-26 21:16:28 [INFO]: MongoDB conectado
+2026-11-26 21:16:28 [INFO]: Servidor escuchando en el puerto 8080 (entorno: development)
+```
+
+**Swagger y endpoint principal:**
+
+```text
+$ curl.exe -s -o NUL -w "swagger: %{http_code}\n" http://localhost:8080/api/docs/
+swagger: 200
+
+$ curl.exe -s "http://localhost:8080/api/orders?limit=2"
+{"status":"success","message":"Lista de pedidos","payload":[],"pagination":{"page":1,"limit":2,"total":0,"totalPages":0,"hasNextPage":false,"hasPrevPage":false}}
+```
+
+La base de la prueba no tenía pedidos, por eso `payload` está vacío y `total` es `0`; la estructura de la respuesta paginada es la que se documenta en *Paginación y filtros*.
+
+**Contenido de la imagen** (no hay `.env`, `.git`, `tests` ni `README.md`; las carpetas de `uploads` están vacías):
+
+```text
+$ docker run --rm shipnow-api ls -a /app
+.  ..  logs  node_modules  package-lock.json  package.json  src  uploads
+
+$ docker run --rm shipnow-api ls -a /app/uploads
+.  ..  documents  licenses  proofs
+```
+
+**Modo producción** (`docker run -d --name shipnow-prod -p 8081:8080 --env-file .env -e NODE_ENV=production -e CLIENT_URL=http://localhost:5173 shipnow-api`):
+
+```text
+$ curl.exe -s http://localhost:8081/health
+{"status":"success","message":"API funcionando","environment":"production","uptime":138,"timestamp":"2026-11-26T21:21:58.384Z"}
+
+$ curl.exe -s http://localhost:8081/api/mocks/mockingusers
+{"status":"error","message":"Ruta no encontrada","code":"ROUTE_NOT_FOUND"}
+
+$ curl.exe -s http://localhost:8081/loggerTest
+{"status":"error","message":"Ruta no encontrada","code":"ROUTE_NOT_FOUND"}
+```
+
+**Cierre ordenado** (`docker stop shipnow-prod shipnow-api`): el comando volvió enseguida y los logs registran la señal y el cierre.
+
+```text
+2026-11-26 21:22:47 [INFO]: Señal SIGTERM recibida: cerrando el servidor
+2026-11-26 21:22:47 [INFO]: Servidor y conexión a MongoDB cerrados correctamente
+```
+
+**Docker Compose** (`docker compose up -d`, espera de 25 s, `curl`, `docker compose ps`, `docker compose down`):
+
+```text
+$ curl.exe -s http://localhost:8080/health
+{"status":"success","message":"API funcionando","environment":"development","uptime":26,"timestamp":"2026-11-26T21:27:51.746Z"}
+
+$ docker compose ps
+NAME                      IMAGE         SERVICE   STATUS                    PORTS
+shipnow-api-95295-api-1   shipnow-api   api       Up 25 seconds (healthy)   0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
+```
+
+**Tests automatizados** (`npm test`, fuera del contenedor, con base MongoDB en memoria): `171 passing (2s)`.
 
 ## Arquitectura por capas
 
@@ -1130,4 +1218,4 @@ Se agregó la carga de archivos con Multer: documentos de usuario (`POST /api/us
 
 
 Durante el curso, la API será mejorada progresivamente para separar responsabilidades, mejorar la mantenibilidad y acercarse a una estructura más profesional.
-Se preparó la API para producción: listados paginados y con filtros, configuración por entorno validada al iniciar, health check ampliado, cierre ordenado del servidor y archivos de Docker (`Dockerfile`, `.dockerignore` y `docker-compose.yml`), estos últimos **preparados pero sin probar** (ver la sección *Docker*). Ver la sección *Producción y Docker*.
+Se preparó la API para producción: listados paginados y con filtros, configuración por entorno validada al iniciar, health check ampliado, cierre ordenado del servidor y archivos de Docker (`Dockerfile`, `.dockerignore` y `docker-compose.yml`), los dos primeros verificados en Docker Desktop (ver la sección *Evidencia de verificación*) y el `docker-compose.yml` (opcional), también verificado. Ver la sección *Producción y Docker*.
